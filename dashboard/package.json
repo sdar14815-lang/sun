@@ -8,7 +8,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "pages:build": "npx @cloudflare/next-on-pages",
     "db:health": "node database_health_check.js"
   },
   "dependencies": {
@@ -25,7 +24,6 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "@cloudflare/next-on-pages": "^1.11.0",
     "eslint": "^8",
     "eslint-config-next": "14.3.0",
     "typescript": "^5"
