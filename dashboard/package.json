@@ -1,0 +1,33 @@
+{
+  "name": "dar-shams-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "db:health": "node database_health_check.js"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.43.2",
+    "date-fns": "^3.6.0",
+    "dotenv": "^17.4.2",
+    "lucide-react": "^0.378.0",
+    "next": "14.3.0",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@cloudflare/next-on-pages": "^1.11.0",
+    "eslint": "^8",
+    "eslint-config-next": "14.3.0",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "name": "app-sun",
+  "version": "1.0.0",
+  "description": "هذا المشروع هو نظام متكامل لإدارة مصحات الطب النفسي وعلاج الإدمان، يتكون من لوحة تحكم للموظفين وتطبيق موبايل للأهالي.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
