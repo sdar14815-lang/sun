@@ -5,3 +5,5 @@
 
 [build.environment]
   NPM_FLAGS = "--legacy-peer-deps"
+  NEXT_PUBLIC_SUPABASE_URL = "https://cfpaflndnaomtyboxsuo.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_i-qF2xVBrTbmxgI6M2Y2ow_JQ8aDTk6"
