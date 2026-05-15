@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { User, FileText, Bell, MessageSquare, Activity, Phone, MessageCircle, ChevronLeft, Calendar } from 'lucide-react';
+import { User, FileText, Bell, MessageSquare, Activity, Phone, MessageCircle, ChevronLeft, Calendar, Image as ImageIcon, Heart, Info, Clock, CheckCircle2, Sun } from 'lucide-react';
 import Link from 'next/link';
 
 const STAGE_LABELS: Record<string, string> = {
@@ -14,22 +14,62 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  stable:               { label: 'مستقر',         color: '#2f855a', bg: '#f0fff4', border: '#c6f6d5' },
-  needs_followup:       { label: 'يحتاج متابعة',  color: '#c05621', bg: '#fffaf0', border: '#feebc8' },
-  significant_progress: { label: 'تقدم ملحوظ',    color: '#2b6cb0', bg: '#ebf8ff', border: '#bee3f8' },
-  important_note:       { label: 'ملاحظة مهمة',   color: '#c53030', bg: '#fff5f5', border: '#fed7d7' },
+  stable:               { label: 'مستقر',         color: '#059669', bg: '#f0fff4', border: '#c6f6d5' },
+  needs_followup:       { label: 'يحتاج متابعة',  color: '#d97706', bg: '#fffaf0', border: '#feebc8' },
+  significant_progress: { label: 'تقدم ملحوظ',    color: '#2563eb', bg: '#ebf8ff', border: '#bee3f8' },
+  important_note:       { label: 'ملاحظة مهمة',   color: '#dc2626', bg: '#fff5f5', border: '#fed7d7' },
 };
+
+function CircularProgress({ percentage, color }: { percentage: number; color: string }) {
+  const radius = 24;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="fp-progress-ring">
+      <svg viewBox="0 0 56 56">
+        <circle className="ring-bg" cx="28" cy="28" r={radius} />
+        <circle 
+          className="ring-fill" 
+          cx="28" 
+          cy="28" 
+          r={radius} 
+          stroke={color}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="ring-value" style={{ color }}>{percentage}%</div>
+    </div>
+  );
+}
+
+function getInitials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').substring(0, 2);
+}
 
 export default function FamilyDashboardPage() {
   const router = useRouter();
   const [profile, setProfile]                     = useState<any>(null);
   const [residents, setResidents]                 = useState<any[]>([]);
   const [recentUpdates, setRecentUpdates]         = useState<any[]>([]);
+  const [recentPhotos, setRecentPhotos]           = useState<any[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages]       = useState(0);
   const [loading, setLoading]                     = useState(true);
+  const [welcomeMessage, setWelcomeMessage]       = useState('');
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { 
+    loadAll(); 
+    setWelcomeMessage(getSmartWelcome());
+  }, []);
+
+  function getSmartWelcome() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'صباح الخير، نتمنى لك يوماً مليئاً بالأمل';
+    if (hour < 18) return 'طاب يومك، نحن هنا لدعمك ودعم ذويك';
+    return 'مساء الخير، نسأل الله الراحة والطمأنينة لكم ولذويكم';
+  }
 
   async function loadAll() {
     try {
@@ -57,14 +97,36 @@ export default function FamilyDashboardPage() {
       const residentIds = links?.map((l: any) => l.resident_id).filter(Boolean) || [];
 
       if (residentIds.length > 0) {
-        const { data: updates } = await supabase
-          .from('resident_updates')
-          .select('id, title, content, update_type, created_at, resident_id, residents!resident_updates_resident_id_fkey(full_name)')
-          .in('resident_id', residentIds)
-          .eq('visible_to_family', true)
-          .order('created_at', { ascending: false })
-          .limit(5);
-        setRecentUpdates(updates || []);
+        const [updatesRes, photosRes, historyRes] = await Promise.all([
+          supabase
+            .from('resident_updates')
+            .select('id, title, content, update_type, created_at, resident_id, residents!resident_updates_resident_id_fkey(full_name)')
+            .in('resident_id', residentIds)
+            .eq('visible_to_family', true)
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('gallery')
+            .select('id, image_url, title')
+            .order('created_at', { ascending: false })
+            .limit(3),
+          supabase
+            .from('weekly_reports')
+            .select('resident_id, progress_score, created_at')
+            .in('resident_id', residentIds)
+            .order('created_at', { ascending: true })
+        ]);
+
+        setRecentUpdates(updatesRes.data || []);
+        setRecentPhotos(photosRes.data || []);
+
+        const historyMap = historyRes.data?.reduce((acc: any, curr: any) => {
+          if (!acc[curr.resident_id]) acc[curr.resident_id] = [];
+          acc[curr.resident_id].push(curr.progress_score);
+          return acc;
+        }, {}) || {};
+
+        setResidents(linked.map((r: any) => ({ ...r, history: historyMap[r.id] || [] })));
       }
 
       const [{ count: notifCount }, { count: msgCount }] = await Promise.all([
@@ -82,43 +144,66 @@ export default function FamilyDashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f0f4f8' }}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div className="spinner" style={{ marginBottom: '1rem' }} />
-          <p style={{ color: '#718096', fontFamily: 'Cairo, sans-serif' }}>جاري التحميل...</p>
+      <div className="family-portal" style={{ minHeight: '100vh', padding: '1.5rem' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div className="fp-skeleton fp-skeleton-banner" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {[1, 2, 3, 4].map(i => <div key={i} className="fp-skeleton" style={{ height: '80px', borderRadius: '14px' }} />)}
+          </div>
+          <div className="two-col-grid">
+            <div className="fp-skeleton-card">
+              <div className="fp-skeleton-line w-40" />
+              {[1, 2].map(i => <div key={i} className="fp-skeleton" style={{ height: '100px', marginBottom: '1rem' }} />)}
+            </div>
+            <div className="fp-skeleton-card">
+              <div className="fp-skeleton-line w-40" />
+              {[1, 2, 3].map(i => <div key={i} className="fp-skeleton-line w-full" style={{ height: '60px' }} />)}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   const quickStats = [
-    { icon: User,          label: 'المقيمون المرتبطون', value: residents.length,         color: '#4299e1', href: '/family/resident' },
-    { icon: Calendar,      label: 'الجدول اليومي',      value: 'اليوم',           color: '#ed8936', href: '/family/schedule' },
-    { icon: Bell,          label: 'إشعارات جديدة',      value: unreadNotifications,      color: '#48bb78', href: '/family/notifications' },
-    { icon: MessageSquare, label: 'رسائل مفتوحة',       value: unreadMessages,           color: '#9f7aea', href: '/family/messages' },
+    { icon: User,          label: 'المقيمون المرتبطون', value: residents.length,         color: '#1B4F72', href: '/family/resident' },
+    { icon: Calendar,      label: 'الجدول اليومي',      value: 'اليوم',           color: '#F0A500', href: '/family/schedule' },
+    { icon: Bell,          label: 'إشعارات جديدة',      value: unreadNotifications,      color: '#059669', href: '/family/notifications', badge: unreadNotifications > 0 },
+    { icon: MessageSquare, label: 'رسائل مفتوحة',       value: unreadMessages,           color: '#2E86C1', href: '/family/messages' },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', paddingBottom: '5rem' }}>
+    <div style={{ minHeight: '100vh', paddingBottom: '5rem' }}>
       <FamilyNavbar userName={profile?.full_name} />
 
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: 'clamp(0.875rem, 4vw, 2rem)' }}>
 
         {/* ── Welcome Banner ── */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1a365d 0%, #2d4a8a 100%)',
+        <div className="fp-animate" style={{
+          background: 'linear-gradient(135deg, #F0A500 0%, #1B4F72 60%, #0D2137 100%)',
           borderRadius: 'clamp(12px, 4vw, 20px)',
-          padding: 'clamp(1.25rem, 5vw, 2rem)',
+          padding: 'clamp(1.25rem, 5vw, 2.5rem)',
           color: 'white',
           marginBottom: '1.5rem',
-          boxShadow: '0 8px 24px rgba(26,54,93,0.25)',
+          boxShadow: '0 12px 32px rgba(27,79,114,0.25)',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          <h1 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', fontWeight: '800', marginBottom: '0.4rem' }}>
-            مرحباً، {profile?.full_name}
-          </h1>
-          <p style={{ opacity: 0.85, fontSize: 'clamp(0.82rem, 3vw, 0.95rem)', lineHeight: 1.6 }}>
-            هنا يمكنك متابعة أحدث المعلومات عن ذويك في دار شمس التعافي
-          </p>
+          {/* Decorative Sun */}
+          <Sun size={120} style={{ position: 'absolute', left: '-20px', bottom: '-20px', opacity: 0.1, transform: 'rotate(-15deg)' }} />
+          
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <p style={{ opacity: 0.9, fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ width: '8px', height: '8px', background: '#F0A500', borderRadius: '50%' }} />
+              {new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <h1 style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)', fontWeight: '800', marginBottom: '0.5rem' }}>
+              مرحباً، {profile?.full_name}
+            </h1>
+            <p style={{ opacity: 0.95, fontSize: 'clamp(0.9rem, 3.5vw, 1.1rem)', lineHeight: 1.6, fontWeight: '500', maxWidth: '600px' }}>
+              {welcomeMessage}
+            </p>
+          </div>
         </div>
 
         {/* ── Quick Stats ── */}
@@ -126,24 +211,21 @@ export default function FamilyDashboardPage() {
           {quickStats.map((s, i) => {
             const Icon = s.icon;
             return (
-              <Link key={i} href={s.href} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  backgroundColor: 'white',
-                  borderRadius: '14px',
-                  padding: 'clamp(0.875rem, 3vw, 1.25rem)',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
-                  display: 'flex', alignItems: 'center', gap: '0.875rem',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'pointer',
-                  height: '100%',
+              <Link key={i} href={s.href} className={`fp-stat-card fp-animate fp-animate-delay-${i+1}`} style={{ borderTopColor: s.color }}>
+                <div style={{ 
+                  padding: '0.75rem', 
+                  borderRadius: '12px', 
+                  backgroundColor: `${s.color}15`, 
+                  color: s.color, 
+                  flexShrink: 0,
+                  position: 'relative'
                 }}>
-                  <div style={{ padding: '0.625rem', borderRadius: '10px', backgroundColor: `${s.color}18`, color: s.color, flexShrink: 0 }}>
-                    <Icon size={22} />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: '0.78rem', color: '#718096', marginBottom: '0.2rem', lineHeight: 1.3 }}>{s.label}</p>
-                    <p style={{ fontSize: 'clamp(1.5rem, 5vw, 1.8rem)', fontWeight: '800', color: '#1a365d', lineHeight: 1 }}>{s.value}</p>
-                  </div>
+                  <Icon size={24} />
+                  {s.badge && <span className="fp-notif-pulse" />}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', marginBottom: '0.1rem', fontWeight: '600' }}>{s.label}</p>
+                  <p className="fp-stat-value" style={{ fontSize: 'clamp(1.5rem, 5vw, 1.8rem)', fontWeight: '800', color: '#1B4F72', lineHeight: 1 }}>{s.value}</p>
                 </div>
               </Link>
             );
@@ -153,51 +235,57 @@ export default function FamilyDashboardPage() {
         {/* ── Two-col section ── */}
         <div className="two-col-grid">
           {/* Residents */}
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: 'clamp(1rem, 4vw, 1.5rem)', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <User size={18} /> المقيمون
+          <div className="fp-animate fp-animate-delay-3" style={{ backgroundColor: 'white', borderRadius: '20px', padding: 'clamp(1.25rem, 4vw, 1.5rem)', boxShadow: 'var(--fp-shadow)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1B4F72', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <User size={20} style={{ color: '#F0A500' }} /> المقيمون المرتبطون
               </h2>
-              <Link href="/family/resident" style={{ fontSize: '0.8rem', color: '#2b6cb0', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+              <Link href="/family/resident" style={{ fontSize: '0.8rem', color: '#2E86C1', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                 عرض الكل <ChevronLeft size={14} />
               </Link>
             </div>
 
             {residents.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#a0aec0' }}>
-                <User size={36} style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.4 }} />
-                <p style={{ fontSize: '0.9rem', marginBottom: '0.25rem' }}>لا يوجد مقيمون مرتبطون بحسابك</p>
-                <p style={{ fontSize: '0.8rem' }}>يرجى التواصل مع الإدارة</p>
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
+                <div style={{ width: '64px', height: '64px', background: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                  <User size={32} style={{ opacity: 0.3 }} />
+                </div>
+                <p style={{ fontSize: '0.95rem', fontWeight: '600', color: '#64748B' }}>لا يوجد مقيمون مرتبطون</p>
               </div>
-            ) : residents.map(r => {
+            ) : residents.map((r, idx) => {
               const s = STATUS_LABELS[r.current_status] || STATUS_LABELS['stable'];
               return (
-                <div key={r.id} style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '0.875rem', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', gap: '0.5rem' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontWeight: '700', color: '#1a365d', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {r.full_name}
-                      </p>
-                      <p style={{ fontSize: '0.78rem', color: '#718096', marginTop: '0.15rem' }}>
-                        {r.relation && `${r.relation} · `}{STAGE_LABELS[r.current_stage] || r.current_stage}
+                <div key={r.id} className="fp-resident-card" style={{ borderRight: `4px solid ${s.color}` }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div className="fp-avatar" style={{ backgroundColor: idx % 2 === 0 ? '#1B4F72' : '#2E86C1' }}>
+                      {getInitials(r.full_name)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+                        <p className="truncate" style={{ fontWeight: '800', color: '#1B4F72', fontSize: '1rem' }}>{r.full_name}</p>
+                        <span style={{
+                          padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.7rem', fontWeight: '800',
+                          backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}`,
+                          display: 'flex', alignItems: 'center', gap: '0.3rem'
+                        }}>
+                          {s.label}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>
+                        {r.relation && `${r.relation} • `}{STAGE_LABELS[r.current_stage] || r.current_stage}
                       </p>
                     </div>
-                    <span style={{
-                      padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700',
-                      backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}`,
-                      whiteSpace: 'nowrap', flexShrink: 0,
-                    }}>
-                      {s.label}
-                    </span>
                   </div>
-                  {r.progress_score !== null && r.progress_score !== undefined && (
-                    <div>
-                      <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: `${r.progress_score}%`, height: '100%', background: 'linear-gradient(90deg, #1a365d, #4299e1)', borderRadius: '3px', transition: 'width 0.5s ease' }} />
+
+                  {r.progress_score !== null && (
+                    <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '0.75rem', background: '#F8FAFC', borderRadius: '12px' }}>
+                      <CircularProgress percentage={r.progress_score} color={s.color} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1B4F72', marginBottom: '0.3rem' }}>مستوى التقدم الحالي</p>
+                        <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${r.progress_score}%`, height: '100%', background: s.color, borderRadius: '3px' }} />
+                        </div>
                       </div>
-                      <p style={{ fontSize: '0.72rem', color: '#718096', marginTop: '0.25rem' }}>
-                        نسبة التقدم: {r.progress_score}%
-                      </p>
                     </div>
                   )}
                 </div>
@@ -206,63 +294,67 @@ export default function FamilyDashboardPage() {
           </div>
 
           {/* Recent Updates */}
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: 'clamp(1rem, 4vw, 1.5rem)', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#1a365d', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Activity size={18} /> آخر التحديثات
+          <div className="fp-animate fp-animate-delay-4" style={{ backgroundColor: 'white', borderRadius: '20px', padding: 'clamp(1.25rem, 4vw, 1.5rem)', boxShadow: 'var(--fp-shadow)' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1B4F72', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <Activity size={20} style={{ color: '#F0A500' }} /> الجدول الزمني للتحديثات
             </h2>
             {recentUpdates.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#a0aec0' }}>
-                <Activity size={36} style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.4 }} />
-                <p style={{ fontSize: '0.9rem' }}>لا توجد تحديثات حديثة</p>
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
+                <Activity size={32} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+                <p>لا توجد تحديثات متاحة حالياً</p>
               </div>
-            ) : recentUpdates.map(u => (
-              <div key={u.id} style={{ borderRight: '3px solid #4299e1', paddingRight: '0.875rem', marginBottom: '1rem' }}>
-                <p style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1a365d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {u.title || u.update_type || 'تحديث'}
-                </p>
-                <p style={{ fontSize: '0.82rem', color: '#4a5568', marginTop: '0.2rem', lineHeight: 1.6 }}>
-                  {u.content?.substring(0, 100)}{u.content?.length > 100 ? '...' : ''}
-                </p>
-                <p style={{ fontSize: '0.72rem', color: '#a0aec0', marginTop: '0.2rem' }}>
-                  {u.residents?.full_name && `${u.residents.full_name} · `}
-                  {new Date(u.created_at).toLocaleDateString('ar-EG')}
-                </p>
+            ) : (
+              <div style={{ paddingRight: '0.5rem' }}>
+                {recentUpdates.map((u, i) => (
+                  <div key={u.id} className="fp-timeline-item">
+                    <div className="fp-timeline-dot" style={{ background: i === 0 ? '#F0A500' : '#2E86C1' }} />
+                    <p style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1B4F72' }}>{u.title || u.update_type || 'تحديث دوري'}</p>
+                    <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.25rem', lineHeight: 1.6 }}>
+                      {u.content?.substring(0, 80)}{u.content?.length > 80 ? '...' : ''}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <Clock size={12} style={{ color: '#94A3B8' }} />
+                      <p style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>
+                        {new Date(u.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
-      </div>
 
-      {/* ── Floating Action Buttons (Mobile) ── */}
-      <div className="family-floating-actions" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <a
-          href="tel:+20000000000"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            background: '#276749', color: 'white',
-            padding: '0.875rem 1.5rem', borderRadius: '50px',
-            fontFamily: 'Cairo, sans-serif', fontWeight: '700', fontSize: '0.9rem',
-            boxShadow: '0 4px 15px rgba(39,103,73,0.4)',
-            textDecoration: 'none', minHeight: '52px',
-          }}
-        >
-          <Phone size={18} /> اتصال بالمصحة
-        </a>
-        <a
-          href="https://wa.me/20000000000"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            background: '#25d366', color: 'white',
-            padding: '0.875rem 1.5rem', borderRadius: '50px',
-            fontFamily: 'Cairo, sans-serif', fontWeight: '700', fontSize: '0.9rem',
-            boxShadow: '0 4px 15px rgba(37,211,102,0.4)',
-            textDecoration: 'none', minHeight: '52px',
-          }}
-        >
-          <MessageCircle size={18} /> واتساب
-        </a>
+        {/* ── Emergency Contact ── */}
+        <div className="fp-animate fp-animate-delay-5" style={{
+          marginTop: '2rem',
+          background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
+          borderRadius: '20px',
+          padding: '1.5rem',
+          border: '2px solid #FDE68A',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '1.5rem',
+          boxShadow: '0 4px 15px rgba(245,158,11,0.05)'
+        }}>
+          <div style={{ width: '56px', height: '56px', background: 'white', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Phone size={28} />
+          </div>
+          <div style={{ flex: 1, minWidth: '240px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#92400E', marginBottom: '0.25rem' }}>مركز المساعدة والطوارئ</h3>
+            <p style={{ fontSize: '0.9rem', color: '#B45309', fontWeight: '500' }}>فريقنا متاح دائماً للرد على استفساراتكم في أي وقت.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <a href="tel:+201115540077" className="btn" style={{ background: '#059669', color: 'white', borderRadius: '12px', padding: '0.75rem 1.5rem' }}>
+              <Phone size={18} /> اتصال مباشر
+            </a>
+            <a href="https://wa.me/201115540077" target="_blank" rel="noopener" className="btn" style={{ background: '#25D366', color: 'white', borderRadius: '12px', padding: '0.75rem 1.5rem' }}>
+              <MessageCircle size={18} /> واتساب
+            </a>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -1,15 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { Plus, Image as ImageIcon, Trash2, Loader2, ExternalLink, Eye, EyeOff, Globe, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function GalleryPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [images, setImages] = useState<any[]>([]);
   const [residents, setResidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadForm, setUploadForm] = useState({ title: '', gallery_type: 'general', resident_id: '', visible_to_family: true, is_public: true });
+  const [uploadForm, setUploadForm] = useState({ title: '', category: 'general', resident_id: '', visible_to_family: true, is_public: true });
   const [showForm, setShowForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filterType, setFilterType] = useState('all');
@@ -33,21 +34,21 @@ export default function GalleryPage() {
     try {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${uploadForm.gallery_type}/${fileName}`;
+      const filePath = `${uploadForm.category}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from('gallery').upload(filePath, selectedFile);
+      const { error: uploadError } = await supabase.storage.from('public-gallery').upload(filePath, selectedFile);
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage.from('public-gallery').getPublicUrl(filePath);
 
       const insertData: any = {
-        media_url: publicUrl,
+        image_url: publicUrl,
         title: uploadForm.title || selectedFile.name,
-        gallery_type: uploadForm.gallery_type,
+        category: uploadForm.category,
         visible_to_family: uploadForm.visible_to_family,
         visibility: uploadForm.is_public ? 'public' : 'private',
       };
-      if (uploadForm.gallery_type === 'resident' && uploadForm.resident_id) {
+      if (uploadForm.category === 'resident' && uploadForm.resident_id) {
         insertData.resident_id = uploadForm.resident_id;
       }
 
@@ -56,7 +57,7 @@ export default function GalleryPage() {
 
       setShowForm(false);
       setSelectedFile(null);
-      setUploadForm({ title: '', gallery_type: 'general', resident_id: '', visible_to_family: true, is_public: true });
+      setUploadForm({ title: '', category: 'general', resident_id: '', visible_to_family: true, is_public: true });
       fetchAll();
     } catch (error: any) {
       alert('خطأ: ' + error.message);
@@ -80,11 +81,12 @@ export default function GalleryPage() {
     general: 'عامة', facility: 'مرافق', activity: 'نشاطات', resident: 'مقيم'
   };
 
-  const filtered = filterType === 'all' ? images : images.filter(img => img.gallery_type === filterType);
+  const filtered = filterType === 'all' ? images : images.filter(img => img.category === filterType);
 
   return (
     <div className="dashboard-container">
-      <Sidebar />
+      <HamburgerButton onClick={() => setSidebarOpen(v => !v)} isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -114,7 +116,7 @@ export default function GalleryPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.85rem' }}>نوع الصورة</label>
-                  <select value={uploadForm.gallery_type} onChange={e => setUploadForm({ ...uploadForm, gallery_type: e.target.value, resident_id: '' })}
+                  <select value={uploadForm.category} onChange={e => setUploadForm({ ...uploadForm, category: e.target.value, resident_id: '' })}
                     style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
                     <option value="general">عامة (تظهر للجميع)</option>
                     <option value="facility">مرافق المصحة</option>
@@ -122,7 +124,7 @@ export default function GalleryPage() {
                     <option value="resident">خاصة بمقيم</option>
                   </select>
                 </div>
-                {uploadForm.gallery_type === 'resident' && (
+                {uploadForm.category === 'resident' && (
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.85rem' }}>اختر المقيم</label>
                     <select required value={uploadForm.resident_id} onChange={e => setUploadForm({ ...uploadForm, resident_id: e.target.value })}
@@ -157,7 +159,7 @@ export default function GalleryPage() {
                 borderColor: filterType === type ? 'var(--primary)' : 'var(--border)',
                 backgroundColor: filterType === type ? 'var(--primary)' : 'white',
                 color: filterType === type ? 'white' : 'var(--text-muted)' }}>
-              {type === 'all' ? `الكل (${images.length})` : `${TYPE_LABELS[type]} (${images.filter(i => i.gallery_type === type).length})`}
+              {type === 'all' ? `الكل (${images.length})` : `${TYPE_LABELS[type]} (${images.filter(i => i.category === type).length})`}
             </button>
           ))}
         </div>
@@ -173,15 +175,15 @@ export default function GalleryPage() {
                     مخفية
                   </div>
                 )}
-                <img src={img.media_url || img.image_url} alt={img.title} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
+                <img src={img.image_url} alt={img.title} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
                 <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <p style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--primary)' }}>{img.title || 'بدون عنوان'}</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '10px', backgroundColor: '#e2e8f0', color: 'var(--primary)', fontWeight: '600' }}>
-                        {TYPE_LABELS[img.gallery_type] || img.gallery_type}
+                        {TYPE_LABELS[img.category] || img.category}
                       </span>
-                      {img.gallery_type === 'resident' && img.residents && (
+                      {img.category === 'resident' && img.residents && (
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{img.residents.full_name}</span>
                       )}
                     </div>
@@ -189,7 +191,7 @@ export default function GalleryPage() {
                       <button onClick={() => toggleVisibility(img.id, img.visible_to_family)} style={{ padding: '0.4rem', borderRadius: '6px', background: 'none', border: '1px solid var(--border)', cursor: 'pointer', color: img.visible_to_family ? '#2f855a' : '#c53030' }}>
                         {img.visible_to_family ? <Eye size={15} /> : <EyeOff size={15} />}
                       </button>
-                      <a href={img.media_url || img.image_url} target="_blank" rel="noreferrer" style={{ padding: '0.4rem', borderRadius: '6px', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', display: 'flex' }}>
+                      <a href={img.image_url} target="_blank" rel="noreferrer" style={{ padding: '0.4rem', borderRadius: '6px', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', display: 'flex' }}>
                         <ExternalLink size={15} />
                       </a>
                       <button onClick={() => deleteImage(img.id)} style={{ padding: '0.4rem', borderRadius: '6px', background: '#fff5f5', border: '1px solid #fed7d7', cursor: 'pointer', color: '#c53030' }}>

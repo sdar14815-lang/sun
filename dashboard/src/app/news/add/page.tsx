@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { Save, X, Newspaper, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function AddNewsPage() {
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +42,8 @@ export default function AddNewsPage() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar />
+      <HamburgerButton onClick={() => setSidebarOpen(v => !v)} isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <form onSubmit={handleSave}>
           <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

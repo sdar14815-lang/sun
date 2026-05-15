@@ -4,6 +4,7 @@ import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { Users, FileText, Newspaper, Image as ImageIcon, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -52,10 +53,10 @@ export default function DashboardPage() {
   }
 
   const statCards = [
-    { label: 'إجمالي المقيمين',  value: stats.residentsCount, icon: Users,     color: '#4299e1' },
-    { label: 'إجمالي التقارير',  value: stats.reportsCount,   icon: FileText,  color: '#48bb78' },
-    { label: 'الأخبار المنشورة', value: stats.newsCount,      icon: Newspaper, color: '#ed8936' },
-    { label: 'صور المعرض',       value: stats.galleryCount,   icon: ImageIcon, color: '#9f7aea' },
+    { label: 'إجمالي المقيمين',  value: stats.residentsCount, icon: Users,     color: '#4299e1', gradient: 'linear-gradient(135deg, #63b3ed 0%, #4299e1 100%)' },
+    { label: 'إجمالي التقارير',  value: stats.reportsCount,   icon: FileText,  color: '#48bb78', gradient: 'linear-gradient(135deg, #68d391 0%, #48bb78 100%)' },
+    { label: 'الأخبار المنشورة', value: stats.newsCount,      icon: Newspaper, color: '#ed8936', gradient: 'linear-gradient(135deg, #f6ad55 0%, #ed8936 100%)' },
+    { label: 'صور المعرض',       value: stats.galleryCount,   icon: ImageIcon, color: '#9f7aea', gradient: 'linear-gradient(135deg, #b794f4 0%, #9f7aea 100%)' },
   ];
 
   return (
@@ -64,23 +65,20 @@ export default function DashboardPage() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="main-content">
-        {/* ── Header ── */}
-        <header className="page-header">
-          <div>
-            <h1>مرحباً بك في شمس التعافي</h1>
-            <p>نظرة عامة على أداء المصحة وحالة المقيمين اليوم</p>
-          </div>
-          <div className="page-header-actions">
+        <Header
+          title="لوحة التحكم"
+          subtitle="نظرة عامة على أداء المصحة اليوم"
+          actions={
             <Link
               href="/residents/add"
               className="btn btn-primary"
-              style={{ boxShadow: '0 4px 14px 0 rgba(26, 54, 93, 0.39)' }}
+              style={{ boxShadow: '0 4px 14px 0 rgba(26, 54, 93, 0.35)' }}
             >
               <Plus size={18} />
-              إضافة مقيم
+              <span className="desktop-only">إضافة مقيم</span>
             </Link>
-          </div>
-        </header>
+          }
+        />
 
         {loading ? (
           /* ── Skeleton loader ── */
@@ -121,21 +119,22 @@ export default function DashboardPage() {
                   >
                     <div style={{
                       padding: '0.875rem',
-                      backgroundColor: `${stat.color}18`,
-                      color: stat.color,
+                      background: stat.gradient,
+                      color: 'white',
                       borderRadius: 14,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
+                      boxShadow: `0 8px 16px -4px ${stat.color}40`
                     }}>
                       <Icon size={28} />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontWeight: 500, marginBottom: '0.2rem' }}>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.2rem' }}>
                         {stat.label}
                       </p>
-                      <h3 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', fontWeight: '800', color: 'var(--primary)', lineHeight: 1 }}>
+                      <h3 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.8rem)', fontWeight: '800', color: 'var(--primary)', lineHeight: 1 }}>
                         {stat.value}
                       </h3>
                     </div>
@@ -223,6 +222,20 @@ export default function DashboardPage() {
           </>
         )}
       </main>
+
+      {/* ── Floating Action Button ── */}
+      <Link href="/reports/add" className="fab" title="تقرير جديد">
+        <Plus size={28} />
+      </Link>
+
+      <style jsx>{`
+        .desktop-only {
+          display: inline;
+        }
+        @media (max-width: 640px) {
+          .desktop-only { display: none; }
+        }
+      `}</style>
     </div>
   );
 }

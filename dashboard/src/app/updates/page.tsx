@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { Plus, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -14,6 +14,7 @@ const UPDATE_TYPES: Record<string, string> = {
 };
 
 export default function UpdatesPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [updates, setUpdates] = useState<any[]>([]);
   const [residents, setResidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,8 @@ export default function UpdatesPage() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar />
+      <HamburgerButton onClick={() => setSidebarOpen(v => !v)} isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

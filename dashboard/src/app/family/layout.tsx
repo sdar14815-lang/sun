@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function FamilyLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f0f4f8', direction: 'rtl' }}>
+    <div className="family-portal" style={{ minHeight: '100vh', direction: 'rtl' }}>
       {children}
     </div>
   );

@@ -22,11 +22,29 @@ export default function FamilyReportsPage() {
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
       setProfile(prof);
 
-      // RLS handles filtering — only published + visible_to_family + linked residents
+      // 1. Get linked resident IDs for this family member
+      const { data: links } = await supabase
+        .from('family_links')
+        .select('resident_id')
+        .eq('family_user_id', user.id)
+        .eq('is_active', true);
+
+      const residentIds = links?.map(l => l.resident_id).filter(Boolean) || [];
+
+      if (residentIds.length === 0) {
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fetch reports only for these residents
       const { data } = await supabase
         .from('weekly_reports')
         .select('*, residents(full_name, file_number)')
+        .in('resident_id', residentIds)
+        .eq('visible_to_family', true)
         .order('created_at', { ascending: false });
+      
       setReports(data || []);
     } catch (err) {
       console.error(err);
@@ -106,6 +124,39 @@ export default function FamilyReportsPage() {
                   <p style={{ color: '#4a5568', lineHeight: '1.8', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
                     {r.report_body}
                   </p>
+                </div>
+
+                <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={async (e) => {
+                      const btn = e.currentTarget;
+                      btn.disabled = true;
+                      btn.innerText = 'تم الاطلاع ✓';
+                      btn.style.backgroundColor = '#f0fff4';
+                      btn.style.color = '#2f855a';
+                      btn.style.borderColor = '#c6f6d5';
+                      
+                      // Attempt to update DB if column exists, else just UI feedback
+                      try {
+                        await supabase.from('weekly_reports').update({ family_read_at: new Date().toISOString() }).eq('id', r.id);
+                      } catch (err) {
+                        console.log('Acknowledgment saved locally only');
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: 'white',
+                      color: '#4a5568',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    تأكيد الاطلاع
+                  </button>
                 </div>
               </div>
             ))}

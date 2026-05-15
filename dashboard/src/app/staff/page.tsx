@@ -1,11 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { UserPlus, Search, Trash2, Shield, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function StaffPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +50,8 @@ export default function StaffPage() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar />
+      <HamburgerButton onClick={() => setSidebarOpen(v => !v)} isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

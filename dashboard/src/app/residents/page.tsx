@@ -4,6 +4,7 @@ import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 const STAGE_LABELS: Record<string, string> = {
   detox: 'إزالة السموم',
@@ -61,19 +62,16 @@ export default function ResidentsPage() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="main-content">
-        {/* ── Header ── */}
-        <header className="page-header">
-          <div>
-            <h1>إدارة المقيمين</h1>
-            <p>عرض وإدارة بيانات المقيمين المسجلين في المصحة</p>
-          </div>
-          <div className="page-header-actions">
+        <Header
+          title="إدارة المقيمين"
+          subtitle="عرض وإدارة بيانات المقيمين المسجلين في المصحة"
+          actions={
             <Link href="/residents/add" className="btn btn-primary">
               <Plus size={18} />
               إضافة مقيم جديد
             </Link>
-          </div>
-        </header>
+          }
+        />
 
         {/* ── Search ── */}
         <div className="card" style={{ marginBottom: '1.25rem' }}>

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { supabase } from '@/lib/supabase';
 import { FileText, Eye, EyeOff, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ const REPORT_TYPES: Record<string, string> = {
 };
 
 export default function ReportsPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
@@ -70,7 +71,8 @@ export default function ReportsPage() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar />
+      <HamburgerButton onClick={() => setSidebarOpen(v => !v)} isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

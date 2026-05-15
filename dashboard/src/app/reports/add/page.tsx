@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
@@ -8,11 +8,12 @@ import Link from 'next/link';
 
 export default function AddReportPage() {
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [residents, setResidents] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     resident_id: '', report_title: '', report_body: '',
-    progress_score: 50, report_type: 'weekly',
+    progress_score: 50,
     status: 'draft', visible_to_family: false,
   });
 
@@ -42,7 +43,8 @@ export default function AddReportPage() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar />
+      <HamburgerButton onClick={() => setSidebarOpen(v => !v)} isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <header style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/reports" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}><ArrowRight size={20} /></Link>
@@ -65,12 +67,9 @@ export default function AddReportPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>نوع التقرير</label>
-                <select value={form.report_type} onChange={e => setForm({ ...form, report_type: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
-                  <option value="weekly">أسبوعي</option>
-                  <option value="monthly">شهري</option>
-                  <option value="periodic">دوري</option>
-                </select>
+                <div style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: '#f8fafc', fontSize: '0.9rem' }}>
+                  تقرير أسبوعي (Weekly)
+                </div>
               </div>
             </div>
 

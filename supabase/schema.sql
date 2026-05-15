@@ -24,7 +24,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
-  CREATE TYPE treatment_stage AS ENUM ('admission', 'detox', 'stabilization', 'rehabilitation', 'followup', 'completed');
+  CREATE TYPE treatment_stage AS ENUM ('admission', 'detox', 'stabilization', 'rehabilitation', 'social_reintegration', 'follow_up', 'followup', 'completed');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN

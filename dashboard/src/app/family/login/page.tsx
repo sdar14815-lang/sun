@@ -61,58 +61,77 @@ export default function FamilyLoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(160deg, #1a365d 0%, #2d4a8a 50%, #1a365d 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem',
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '24px',
-        padding: 'clamp(1.5rem, 7vw, 3rem)',
-        width: '100%',
-        maxWidth: '440px',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
-      }}>
+    <div
+      className="fp-login-bg"
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(160deg, #0D2137 0%, #1B4F72 40%, #2E86C1 70%, #1B4F72 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      {/* Decorative Sun SVG */}
+      <svg style={{ position: 'absolute', top: '-60px', right: '-60px', width: '300px', height: '300px', opacity: 0.04 }} viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="40" fill="#F0A500" />
+        {[0,30,60,90,120,150,180,210,240,270,300,330].map(angle => (
+          <line key={angle} x1="100" y1="100" x2={100 + 80 * Math.cos(angle * Math.PI / 180)} y2={100 + 80 * Math.sin(angle * Math.PI / 180)} stroke="#F0A500" strokeWidth="4" strokeLinecap="round" />
+        ))}
+      </svg>
+
+      <div
+        className="fp-login-card fp-animate"
+        style={{
+          padding: 'clamp(1.5rem, 7vw, 3rem)',
+          width: '100%',
+          maxWidth: '440px',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
-            width: '72px', height: '72px', borderRadius: '18px',
-            background: 'linear-gradient(135deg, #1a365d, #D4AF37)',
+            width: '76px', height: '76px', borderRadius: '20px',
+            background: 'linear-gradient(135deg, #1B4F72, #F0A500)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 1rem',
-            boxShadow: '0 6px 20px rgba(26,54,93,0.3)',
+            boxShadow: '0 8px 24px rgba(240,165,0,0.3)',
+            animation: 'fp-scaleIn 0.6s ease forwards',
           }}>
-            <Sun size={36} color="white" />
+            <Sun size={38} color="white" />
           </div>
-          <h1 style={{ fontSize: 'clamp(1.2rem, 5vw, 1.5rem)', fontWeight: '800', color: '#1a365d', marginBottom: '0.4rem' }}>
+          <h1 style={{ fontSize: 'clamp(1.2rem, 5vw, 1.5rem)', fontWeight: '800', color: '#1B4F72', marginBottom: '0.4rem' }}>
             دار شمس التعافي
           </h1>
-          <p style={{ color: '#718096', fontSize: '0.9rem' }}>بوابة متابعة الأهالي</p>
+          <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '0.3rem' }}>بوابة متابعة الأهالي</p>
+          <p style={{ color: '#F0A500', fontSize: '0.82rem', fontWeight: '600' }}>نحن هنا لنطمئنك على ذويك 💛</p>
         </div>
 
         {error && (
-          <div style={{
-            backgroundColor: '#fff5f5',
-            border: '1px solid #fed7d7',
-            borderRadius: '10px',
+          <div className="fp-animate" style={{
+            backgroundColor: '#FEE2E2',
+            border: '1px solid #FECACA',
+            borderRadius: '12px',
             padding: '0.875rem 1rem',
             marginBottom: '1.5rem',
-            color: '#c53030',
+            color: '#DC2626',
             fontSize: '0.88rem',
             lineHeight: '1.5',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
           }}>
+            <span style={{ fontSize: '1.1rem' }}>⚠️</span>
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Username */}
-          <div>
-            <label htmlFor="family-username" className="form-label">اسم المستخدم</label>
+          <div className="fp-animate fp-animate-delay-1">
+            <label htmlFor="family-username" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem', color: '#1E293B' }}>اسم المستخدم</label>
             <div style={{ position: 'relative' }}>
               <input
                 id="family-username"
@@ -123,18 +142,22 @@ export default function FamilyLoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="أدخل اسم المستخدم"
-                className="form-input"
-                style={{ paddingRight: '2.75rem' }}
-                onFocus={(e) => (e.target.style.borderColor = '#1a365d')}
-                onBlur={(e)  => (e.target.style.borderColor = '#e2e8f0')}
+                className="fp-input"
+                style={{
+                  width: '100%', padding: '0.875rem 2.75rem 0.875rem 1rem',
+                  borderRadius: '12px', border: '2px solid #E2E8F0',
+                  fontFamily: 'inherit', fontSize: '16px', background: '#FAFBFC',
+                  transition: 'border-color 0.3s, box-shadow 0.3s',
+                  minHeight: '48px',
+                }}
               />
-              <User size={18} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#a0aec0', pointerEvents: 'none' }} />
+              <User size={18} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
             </div>
           </div>
 
           {/* Password */}
-          <div>
-            <label htmlFor="family-password" className="form-label">كلمة المرور</label>
+          <div className="fp-animate fp-animate-delay-2">
+            <label htmlFor="family-password" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem', color: '#1E293B' }}>كلمة المرور</label>
             <div style={{ position: 'relative' }}>
               <input
                 id="family-password"
@@ -144,16 +167,20 @@ export default function FamilyLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="form-input"
-                style={{ paddingRight: '2.75rem', paddingLeft: '2.75rem' }}
-                onFocus={(e) => (e.target.style.borderColor = '#1a365d')}
-                onBlur={(e)  => (e.target.style.borderColor = '#e2e8f0')}
+                className="fp-input"
+                style={{
+                  width: '100%', padding: '0.875rem 2.75rem 0.875rem 2.75rem',
+                  borderRadius: '12px', border: '2px solid #E2E8F0',
+                  fontFamily: 'inherit', fontSize: '16px', background: '#FAFBFC',
+                  transition: 'border-color 0.3s, box-shadow 0.3s',
+                  minHeight: '48px',
+                }}
               />
-              <Lock size={18} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#a0aec0', pointerEvents: 'none' }} />
+              <Lock size={18} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#718096', padding: '0.25rem' }}
+                style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: '0.25rem' }}
                 aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -161,38 +188,37 @@ export default function FamilyLoginPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '0.875rem',
-              background: loading ? '#a0aec0' : 'linear-gradient(135deg, #1a365d, #2d4a8a)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '1rem',
-              fontWeight: '700',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              minHeight: '52px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              transition: 'opacity 0.2s',
-            }}
-          >
-            {loading ? (
-              <>
-                <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
-                جاري تسجيل الدخول...
-              </>
-            ) : 'تسجيل الدخول'}
-          </button>
+          <div className="fp-animate fp-animate-delay-3">
+            <button
+              type="submit"
+              disabled={loading}
+              className="fp-login-btn"
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                fontSize: '1rem',
+                fontWeight: '700',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: 'Cairo, sans-serif',
+                minHeight: '52px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? (
+                <>
+                  <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                  جاري تسجيل الدخول...
+                </>
+              ) : 'تسجيل الدخول'}
+            </button>
+          </div>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.82rem', color: '#a0aec0', lineHeight: 1.6 }}>
+        <p className="fp-animate fp-animate-delay-4" style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.82rem', color: '#94A3B8', lineHeight: 1.6 }}>
           هذه البوابة مخصصة لأهالي المقيمين فقط
         </p>
       </div>

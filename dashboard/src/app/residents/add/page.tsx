@@ -173,10 +173,13 @@ export default function AddResidentPage() {
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label">المرحلة الحالية</label>
                     <select className="form-input" value={formData.current_stage} onChange={e => setFormData({...formData, current_stage: e.target.value})}>
+                      <option value="admission">الاستقبال والتقييم</option>
                       <option value="detox">الانسحاب (Detox)</option>
+                      <option value="stabilization">الاستقرار</option>
                       <option value="rehabilitation">التأهيل النفسي</option>
                       <option value="social_reintegration">الدمج المجتمعي</option>
                       <option value="follow_up">المتابعة</option>
+                      <option value="completed">مكتمل</option>
                     </select>
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
@@ -184,8 +187,8 @@ export default function AddResidentPage() {
                     <select className="form-input" value={formData.current_status} onChange={e => setFormData({...formData, current_status: e.target.value})}>
                       <option value="stable">مستقرة</option>
                       <option value="needs_followup">تحتاج متابعة</option>
-                      <option value="significant_progress">تقدم ملحوظ</option>
-                      <option value="important_note">ملاحظة هامة</option>
+                      <option value="improving">في تحسن (Improving)</option>
+                      <option value="critical">حالة حرجة (Critical)</option>
                     </select>
                   </div>
                 </div>

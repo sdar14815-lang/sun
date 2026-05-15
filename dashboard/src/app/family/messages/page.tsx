@@ -46,7 +46,7 @@ export default function FamilyMessagesPage() {
       const { error } = await supabase.from('messages').insert({
         family_user_id: user?.id,
         resident_id: form.resident_id || null,
-        message: form.message,
+        body: form.message,
         status: 'open',
         sender_id: user?.id,
       });
@@ -97,7 +97,7 @@ export default function FamilyMessagesPage() {
               cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', 
               fontFamily: 'inherit', boxShadow: '0 4px 10px rgba(26,54,93,0.2)',
               minHeight: '44px',
-              width: typeof window !== 'undefined' && window.innerWidth <= 480 ? '100%' : 'auto',
+              width: 'auto',
               justifyContent: 'center'
             }}>
             <Send size={16} /> رسالة جديدة
@@ -122,7 +122,7 @@ export default function FamilyMessagesPage() {
                   placeholder="اكتب رسالتك هنا..."
                   style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '2px solid #e2e8f0', outline: 'none', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.95rem', minHeight: '100px' }} />
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem', flexDirection: typeof window !== 'undefined' && window.innerWidth <= 480 ? 'column-reverse' : 'row', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowForm(false)} 
                   style={{ padding: '0.75rem 1.5rem', borderRadius: '10px', background: '#f1f5f9', color: '#4a5568', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: '600', minHeight: '44px' }}>
                   إلغاء

@@ -207,10 +207,13 @@ export default function EditResidentPage() {
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600' }}>المرحلة الحالية</label>
                     <select value={formData.current_stage} onChange={e => setFormData({...formData, current_stage: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      <option value="admission">الاستقبال والتقييم</option>
                       <option value="detox">الانسحاب (Detox)</option>
+                      <option value="stabilization">الاستقرار</option>
                       <option value="rehabilitation">التأهيل النفسي</option>
                       <option value="social_reintegration">الدمج المجتمعي</option>
                       <option value="follow_up">المتابعة</option>
+                      <option value="completed">مكتمل</option>
                     </select>
                   </div>
                   <div>
