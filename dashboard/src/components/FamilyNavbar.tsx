@@ -2,18 +2,21 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info } from 'lucide-react';
+import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const navItems = [
   { name: 'الرئيسية',   icon: Home,          path: '/family/dashboard' },
-  { name: 'ملف المقيم',  icon: User,         path: '/family/resident' },
+  { name: 'ملف المقيم',  icon: User,          path: '/family/resident' },
   { name: 'التقارير',   icon: FileText,      path: '/family/reports' },
+  { name: 'الأخبار',    icon: Newspaper,     path: '/family/news' },
+  { name: 'الجدول',     icon: Calendar,      path: '/family/schedule' },
   { name: 'الرسائل',    icon: MessageSquare, path: '/family/messages' },
-  { name: 'الطلبات',    icon: Bell,          path: '/family/needs' },
-  { name: 'الأسئلة',    icon: Info,          path: '/family/faq' },
+  { name: 'الطلبات',    icon: MessageCircle, path: '/family/needs' },
+  { name: 'الإشعارات',   icon: Bell,          path: '/family/notifications' },
   { name: 'الصور',      icon: Image,         path: '/family/gallery' },
-  { name: 'حسابي',      icon: User,         path: '/family/profile' },
+  { name: 'الأسئلة',    icon: Info,          path: '/family/faq' },
+  { name: 'حسابي',      icon: User,          path: '/family/profile' },
 ];
 
 export default function FamilyNavbar({ userName }: { userName?: string }) {
