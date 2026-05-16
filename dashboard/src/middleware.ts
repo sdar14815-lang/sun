@@ -48,7 +48,7 @@ export async function middleware(req: NextRequest) {
   if (!session) {
     // If not logged in and not on login page, redirect to login
     if (!isAdminLoginRoute) {
-      return NextResponse.redirect(new URL('/login', req.url));
+      return NextResponse.redirect(new URL('/family/login', req.url));
     }
     return res;
   }
