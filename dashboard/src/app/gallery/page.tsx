@@ -72,9 +72,36 @@ export default function GalleryPage() {
   }
 
   async function deleteImage(id: string) {
-    if (!confirm('هل أنت متأكد من حذف هذه الصورة؟')) return;
-    const { error } = await supabase.from('gallery').delete().eq('id', id);
-    if (!error) setImages(images.filter(img => img.id !== id));
+    if (!confirm('هل أنت متأكد من حذف هذه الصورة نهائياً؟ سيتم حذف الملف أيضاً من السيرفر.')) return;
+    
+    try {
+      // 1. Find the image to get its URL
+      const imgToDelete = images.find(img => img.id === id);
+      if (!imgToDelete) return;
+
+      // 2. Extract the file path from the public URL
+      // The URL looks like: .../storage/v1/object/public/public-gallery/category/filename.jpg
+      const urlParts = imgToDelete.image_url.split('public-gallery/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        // 3. Delete from Supabase Storage
+        const { error: storageError } = await supabase.storage.from('public-gallery').remove([filePath]);
+        if (storageError) {
+          console.error('Storage deletion error:', storageError);
+          // We continue to delete from DB even if storage fails, or we can choose to stop.
+          // Usually, it's better to clean up the DB if the user wants it gone.
+        }
+      }
+
+      // 4. Delete from Database
+      const { error: dbError } = await supabase.from('gallery').delete().eq('id', id);
+      if (dbError) throw dbError;
+
+      // 5. Update local state
+      setImages(images.filter(img => img.id !== id));
+    } catch (error: any) {
+      alert('حدث خطأ أثناء الحذف: ' + error.message);
+    }
   }
 
   const TYPE_LABELS: Record<string, string> = {
@@ -135,11 +162,17 @@ export default function GalleryPage() {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={uploadForm.visible_to_family} onChange={e => setUploadForm({ ...uploadForm, visible_to_family: e.target.checked })} />
-                  <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>مرئية (ظاهرة)</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--primary)' }}>ظاهرة في بوابة الأهل</span>
                 </label>
+                <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={uploadForm.is_public} onChange={e => setUploadForm({ ...uploadForm, is_public: e.target.checked })} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--primary)' }}>صورة عامة (تظهر للجميع)</span>
+                </label>
+                {!uploadForm.is_public && <span style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: '600' }}>(ستكون خاصة بالمقيم المختار فقط)</span>}
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowForm(false)} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', background: '#e2e8f0', color: 'var(--primary)', border: 'none', cursor: 'pointer' }}>إلغاء</button>
