@@ -18,7 +18,13 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      // Allow login with username by appending @shams.com if no @ is present
+      const loginEmail = email.includes('@') ? email.trim().toLowerCase() : `${email.trim().toLowerCase()}@shams.com`;
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ 
+        email: loginEmail, 
+        password 
+      });
       if (authError) throw authError;
 
       const { data: profile, error: profileError } = await supabase
@@ -29,17 +35,21 @@ export default function LoginPage() {
 
       if (profileError || !profile || profile.role === 'family') {
         await supabase.auth.signOut();
-        throw new Error('عذراً، ليس لديك صلاحية للوصول إلى لوحة التحكم.');
+        throw new Error('عذراً، ليس لديك صلاحية للوصول إلى لوحة التحكم الإدارية.');
       }
 
       if (profile.status === 'disabled') {
         await supabase.auth.signOut();
-        throw new Error('هذا الحساب موقوف. يرجى التواصل مع الإدارة.');
+        throw new Error('هذا الحساب موقوف حالياً. يرجى مراجعة الدعم الفني.');
       }
 
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
+      if (err.message?.includes('Invalid login credentials')) {
+        setError('بيانات الدخول غير صحيحة. تأكد من اسم المستخدم وكلمة المرور.');
+      } else {
+        setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
+      }
     } finally {
       setLoading(false);
     }
@@ -107,7 +117,7 @@ export default function LoginPage() {
             <div style={{ position: 'relative' }}>
               <input
                 id="admin-email"
-                type="email"
+                type="text"
                 required
                 autoComplete="email"
                 value={email}

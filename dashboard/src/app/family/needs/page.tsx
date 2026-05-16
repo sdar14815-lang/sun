@@ -53,13 +53,13 @@ export default function FamilyNeedsPage() {
         other: 'أخرى'
       }[category] || category;
 
-      // Fixed: Using 'body' instead of 'content' to match schema
-      const { error } = await supabase.from('notifications').insert({
-        title: 'طلب احتياجات جديد',
-        body: `قام ولي الأمر بطلب (${categoryLabel}) للمقيم (${residentName}): ${description}`,
-        recipient_user_id: null, // Global notification for admins
-        type: 'needs_request',
-        metadata: { resident_id: selectedResident, category, description }
+      // Switched to 'messages' table as it's the correct channel for family-to-admin communication
+      const { error } = await supabase.from('messages').insert({
+        family_user_id: user?.id,
+        resident_id: selectedResident,
+        body: `[طلب احتياجات - ${categoryLabel}]: ${description}`,
+        status: 'open',
+        sender_id: user?.id,
       });
 
       if (error) throw error;

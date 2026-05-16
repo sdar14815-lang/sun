@@ -18,7 +18,7 @@ export default function NotificationsPage() {
   async function fetchAll() {
     try {
       const [notifRes, resRes, famRes] = await Promise.all([
-        supabase.from('notifications').select('*, profiles!notifications_recipient_user_id_fkey(full_name)').order('created_at', { ascending: false }).limit(50),
+        supabase.from('notifications').select('*, profiles!recipient_user_id(full_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('residents').select('id, full_name').eq('is_active', true).order('full_name'),
         supabase.from('profiles').select('id, full_name').eq('role', 'family').eq('status', 'active'),
       ]);
