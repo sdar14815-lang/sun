@@ -28,7 +28,8 @@ export default function EditResidentPage() {
     room_number: '',
     assigned_doctor: '',
     assigned_therapist: '',
-    notes_internal: ''
+    notes_internal: '',
+    progress_score: 50
   });
 
   useEffect(() => {
@@ -72,7 +73,8 @@ export default function EditResidentPage() {
           room_number: data.room_number || '',
           assigned_doctor: data.assigned_doctor_id || '',
           assigned_therapist: data.assigned_therapist_id || '',
-          notes_internal: data.notes_internal || ''
+          notes_internal: data.notes_internal || '',
+          progress_score: data.progress_score !== null && data.progress_score !== undefined ? data.progress_score : 50
         });
       }
     } catch (err: any) {
@@ -97,7 +99,8 @@ export default function EditResidentPage() {
         room_number: formData.room_number,
         assigned_doctor_id: formData.assigned_doctor || null,
         assigned_therapist_id: formData.assigned_therapist || null,
-        notes_internal: formData.notes_internal
+        notes_internal: formData.notes_internal,
+        progress_score: formData.progress_score
       };
 
       if (isAdmin && formData.file_number.trim() !== '') {
@@ -226,6 +229,27 @@ export default function EditResidentPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* ── Progress Score Controller ── */}
+                <div style={{ marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.95rem', fontWeight: '700', color: 'var(--primary)' }}>
+                    مؤشر الالتزام والتعافي العام للمقيم: <span style={{ color: '#10B981', fontWeight: '900' }}>{formData.progress_score}%</span>
+                  </label>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={formData.progress_score} 
+                    onChange={e => setFormData({...formData, progress_score: Number(e.target.value)})} 
+                    style={{ width: '100%', cursor: 'pointer', accentColor: '#10B981' }} 
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600', marginTop: '0.25rem' }}>
+                    <span>0% (بدء العلاج)</span>
+                    <span>50% (نصف المدة)</span>
+                    <span>100% (تعافي كامل)</span>
+                  </div>
+                </div>
+
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600' }}>ملاحظات داخلية (لا تظهر للأهل)</label>
                   <textarea value={formData.notes_internal} onChange={e => setFormData({...formData, notes_internal: e.target.value})} rows={4} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', resize: 'none' }} placeholder="اكتب ملاحظات الفريق الطبي هنا..."></textarea>

@@ -2,27 +2,77 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar } from 'lucide-react';
+import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import FamilyChatbot from './FamilyChatbot';
 
-const navItems = [
-  { name: 'الرئيسية',   icon: Home,          path: '/family/dashboard' },
-  { name: 'ملف المقيم',  icon: User,          path: '/family/resident' },
-  { name: 'التقارير',   icon: FileText,      path: '/family/reports' },
-  { name: 'الأخبار',    icon: Newspaper,     path: '/family/news' },
-  { name: 'الجدول',     icon: Calendar,      path: '/family/schedule' },
-  { name: 'الرسائل',    icon: MessageSquare, path: '/family/messages' },
-  { name: 'الطلبات',    icon: MessageCircle, path: '/family/needs' },
-  { name: 'الإشعارات',   icon: Bell,          path: '/family/notifications' },
-  { name: 'الصور',      icon: Image,         path: '/family/gallery' },
-  { name: 'الأسئلة',    icon: Info,          path: '/family/faq' },
-  { name: 'حسابي',      icon: User,          path: '/family/profile' },
+// ── Desktop items (Top Tabs Bar) ──
+const desktopItems = [
+  { name: 'الرئيسية', icon: Home, path: '/family/dashboard' },
+  { name: 'ملف المقيم', icon: User, path: '/family/resident' },
+  { name: 'التقارير', icon: FileText, path: '/family/reports' },
+  { name: 'الرسائل', icon: MessageSquare, path: '/family/messages' },
+  { name: 'الصور', icon: Image, path: '/family/gallery' },
+];
+
+// ── Dropdown items (Desktop "More" menu) ──
+const dropdownItems = [
+  { name: 'جدول اليوم', icon: Calendar, path: '/family/schedule' },
+  { name: 'طلب مستلزمات', icon: MessageCircle, path: '/family/needs' },
+  { name: 'أخبار المصحة', icon: Newspaper, path: '/family/news' },
+  { name: 'الأسئلة الشائعة', icon: Info, path: '/family/faq' },
+  { name: 'الإشعارات', icon: Bell, path: '/family/notifications' },
+  { name: 'إعدادات حسابي', icon: User, path: '/family/profile' },
+];
+
+// ── Mobile Bottom Navigation Bar (Core 4 items + "More" trigger) ──
+const mobileBottomItems = [
+  { name: 'الرئيسية', icon: Home, path: '/family/dashboard' },
+  { name: 'ملف المقيم', icon: User, path: '/family/resident' },
+  { name: 'التقارير', icon: FileText, path: '/family/reports' },
+  { name: 'الرسائل', icon: MessageSquare, path: '/family/messages' },
+];
+
+// ── Grouped Categories for the Mobile Side Drawer ──
+const groupedCategories = [
+  {
+    title: '👤 ملف المقيم وحالته',
+    items: [
+      { name: 'الرئيسية الموحدة', icon: Home, path: '/family/dashboard' },
+      { name: 'ملف المقيم الكامل', icon: User, path: '/family/resident' },
+      { name: 'جدول الحصص المباشر', icon: Calendar, path: '/family/schedule' },
+    ]
+  },
+  {
+    title: '💬 التواصل والطلبات',
+    items: [
+      { name: 'الرسائل والمراسلة', icon: MessageSquare, path: '/family/messages' },
+      { name: 'طلبات الاحتياجات', icon: MessageCircle, path: '/family/needs' },
+      { name: 'مركز التنبيهات', icon: Bell, path: '/family/notifications' },
+    ]
+  },
+  {
+    title: '📋 التقارير الطبية والمستندات',
+    items: [
+      { name: 'التقارير الأسبوعية', icon: FileText, path: '/family/reports' },
+    ]
+  },
+  {
+    title: '📸 مصحة شمس والمجتمع',
+    items: [
+      { name: 'ألبوم صور الأنشطة', icon: Image, path: '/family/gallery' },
+      { name: 'أخبار وفعاليات شمس', icon: Newspaper, path: '/family/news' },
+      { name: 'الأسئلة الشائعة', icon: Info, path: '/family/faq' },
+      { name: 'إعدادات حسابي', icon: User, path: '/family/profile' },
+    ]
+  }
 ];
 
 export default function FamilyNavbar({ userName }: { userName?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -90,7 +140,7 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           </button>
         </div>
 
-        {/* Mobile: hamburger (still kept for extra links if needed, or simplified) */}
+        {/* Mobile: hamburger */}
         <button
           className="family-header-mobile"
           onClick={() => setMobileMenuOpen(v => !v)}
@@ -112,11 +162,12 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           display: 'flex',
           padding: '0 1.5rem',
           gap: '0.25rem',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
+          overflow: 'visible',
+          position: 'relative',
+          borderBottom: '2px solid var(--fp-border)'
         }}
       >
-        {navItems.map(item => {
+        {desktopItems.map(item => {
           const Icon = item.icon;
           const isActive = pathname === item.path;
           return (
@@ -125,38 +176,95 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                 padding: '1rem 1.25rem', textDecoration: 'none',
-                color: isActive ? '#1B4F72' : '#64748B',
-                borderBottom: isActive ? '3px solid #F0A500' : '3px solid transparent',
+                color: isActive ? 'var(--fp-primary)' : '#64748B',
+                borderBottom: isActive ? '3px solid var(--fp-accent)' : '3px solid transparent',
                 fontWeight: isActive ? '800' : '600',
                 whiteSpace: 'nowrap', fontSize: '0.88rem',
                 transition: 'all 0.2s', marginBottom: '-2px',
                 minHeight: '52px',
               }}
             >
-              <Icon size={16} color={isActive ? '#F0A500' : '#94A3B8'} />
+              <Icon size={16} color={isActive ? 'var(--fp-accent)' : '#94A3B8'} />
               {item.name}
             </Link>
           );
         })}
+
+        {/* Desktop "More" Dropdown */}
+        <div
+          style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+          onMouseEnter={() => setDesktopDropdownOpen(true)}
+          onMouseLeave={() => setDesktopDropdownOpen(false)}
+        >
+          <button
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '1rem 1.25rem', background: 'none', border: 'none',
+              color: desktopDropdownOpen ? 'var(--fp-primary)' : '#64748B',
+              fontWeight: '600', fontSize: '0.88rem', cursor: 'pointer',
+              minHeight: '52px', borderBottom: '3px solid transparent',
+              marginBottom: '-2px',
+            }}
+          >
+            <span>المزيد</span>
+            <ChevronDown size={14} style={{ transform: desktopDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+
+          {desktopDropdownOpen && (
+            <div
+              style={{
+                position: 'absolute', top: '100%', right: 0,
+                width: '220px', background: 'white',
+                borderRadius: '16px', border: '1px solid var(--fp-border)',
+                boxShadow: 'var(--fp-shadow-hover)', padding: '0.5rem',
+                display: 'flex', flexDirection: 'column', gap: '0.25rem',
+                zIndex: 100, animation: 'fp-fadeIn 0.2s ease',
+              }}
+            >
+              {dropdownItems.map(item => {
+                const Icon = item.icon;
+                const isActive = pathname === item.path;
+                return (
+                  <Link key={item.path} href={item.path}
+                    onClick={() => setDesktopDropdownOpen(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      padding: '0.75rem 1rem', borderRadius: '10px',
+                      textDecoration: 'none', color: isActive ? 'var(--fp-primary)' : '#475569',
+                      background: isActive ? 'rgba(240, 165, 0, 0.08)' : 'transparent',
+                      fontWeight: isActive ? '800' : '500',
+                      fontSize: '0.85rem', transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => { if (!isActive) e.currentTarget.style.background = '#f8fafc'; }}
+                    onMouseOut={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <Icon size={16} color={isActive ? 'var(--fp-accent)' : '#94A3B8'} />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* ── Bottom Navigation (Mobile) ── */}
       <nav className="fp-bottom-nav">
         <div className="fp-bottom-nav-inner">
-          {navItems.slice(0, 4).map(item => { // Take top 4 for bottom bar
-             const Icon = item.icon;
-             const isActive = pathname === item.path;
-             return (
-               <Link key={item.path} href={item.path} className={isActive ? 'active' : ''}>
-                 <Icon size={22} />
-                 <span>{item.name}</span>
-               </Link>
-             );
+          {mobileBottomItems.map(item => {
+            const Icon = item.icon;
+            const isActive = pathname === item.path;
+            return (
+              <Link key={item.path} href={item.path} className={isActive ? 'active' : ''}>
+                <Icon size={22} />
+                <span>{item.name}</span>
+              </Link>
+            );
           })}
-          <button 
+          <button
             onClick={() => setMobileMenuOpen(true)}
-            style={{ 
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem', 
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem',
               background: 'none', border: 'none', color: '#64748B', fontSize: '0.65rem', fontWeight: '500'
             }}
           >
@@ -179,7 +287,7 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           />
           <div style={{
             position: 'fixed', top: 0, right: 0,
-            width: 'min(280px, 85vw)', height: '100vh',
+            width: 'min(290px, 85vw)', height: '100vh',
             background: 'white', zIndex: 101,
             display: 'flex', flexDirection: 'column',
             boxShadow: '-10px 0 40px rgba(0,0,0,0.3)',
@@ -189,11 +297,11 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           >
             {/* Drawer header */}
             <div style={{
-              background: 'linear-gradient(135deg, #1B4F72, #0D2137)',
+              background: 'linear-gradient(135deg, var(--fp-primary), var(--fp-primary-dark))',
               padding: '1.5rem 1.25rem',
               color: 'white',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              borderBottom: '3px solid #F0A500'
+              borderBottom: '3px solid var(--fp-accent)'
             }}>
               <div>
                 <p style={{ fontWeight: '800', fontSize: '1.1rem', fontFamily: 'Cairo' }}>دار شمس التعافي</p>
@@ -207,32 +315,45 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
               </button>
             </div>
 
-            {/* Drawer nav items */}
-            <nav style={{ flex: 1, padding: '1rem 0.75rem' }}>
-              {navItems.map(item => {
-                const Icon = item.icon;
-                const isActive = pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '1rem',
-                      padding: '1rem 1.25rem', borderRadius: '12px',
-                      textDecoration: 'none', marginBottom: '0.5rem',
-                      background: isActive ? '#F0A50010' : 'transparent',
-                      color: isActive ? '#1B4F72' : '#475569',
-                      fontWeight: isActive ? '800' : '600',
-                      fontSize: '0.95rem',
-                      borderRight: isActive ? '4px solid #F0A500' : '4px solid transparent',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Icon size={20} color={isActive ? '#F0A500' : '#94A3B8'} />
-                    {item.name}
-                  </Link>
-                );
-              })}
+            {/* Drawer nav items grouped by Category */}
+            <nav style={{ flex: 1, padding: '1rem 0.75rem', overflowY: 'auto' }}>
+              {groupedCategories.map((group, groupIdx) => (
+                <div key={groupIdx} style={{ marginBottom: '1.5rem' }}>
+                  <p style={{
+                    fontSize: '0.75rem', fontWeight: '900', color: 'var(--fp-accent)',
+                    padding: '0 0.5rem 0.5rem 0.5rem', textTransform: 'uppercase',
+                    letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9'
+                  }}>
+                    {group.title}
+                  </p>
+                  <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    {group.items.map(item => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.path;
+                      return (
+                        <Link
+                          key={item.path}
+                          href={item.path}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.75rem',
+                            padding: '0.85rem 1rem', borderRadius: '12px',
+                            textDecoration: 'none',
+                            background: isActive ? 'rgba(240, 165, 0, 0.08)' : 'transparent',
+                            color: isActive ? 'var(--fp-primary)' : '#475569',
+                            fontWeight: isActive ? '800' : '600',
+                            fontSize: '0.9rem',
+                            borderRight: isActive ? '4px solid var(--fp-accent)' : '4px solid transparent',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <Icon size={18} color={isActive ? 'var(--fp-accent)' : '#94A3B8'} />
+                          {item.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
 
             {/* Logout */}
@@ -268,6 +389,9 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           .family-nav-desktop    { display: none !important; }
         }
       `}</style>
+
+      {/* ── Global Cloud AI Chatbot Helper ── */}
+      <FamilyChatbot />
     </>
   );
 }

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { Clock, Coffee, Dumbbell, User, Shield, ArrowRight, Calendar } from 'lucide-react';
+import { Clock, Coffee, Dumbbell, User, Shield, ArrowRight, Calendar, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 const DAYS = [
@@ -17,11 +17,11 @@ const DAYS = [
 ];
 
 const ACTIVITY_TYPES = [
-  { id: 'session',  name: 'جلسة علاجية', icon: User,     color: '#4299e1' },
-  { id: 'meal',     name: 'وجبة طعام',   icon: Coffee,   color: '#ed8936' },
-  { id: 'exercise', name: 'نشاط بدني',   icon: Dumbbell, color: '#48bb78' },
-  { id: 'rest',     name: 'وقت راحة',    icon: Clock,    color: '#a0aec0' },
-  { id: 'other',    name: 'أخرى',        icon: Shield,   color: '#805ad5' },
+  { id: 'session',  name: 'جلسة علاجية', icon: User,     color: '#2563EB' },
+  { id: 'meal',     name: 'وجبة طعام صحية',   icon: Coffee,   color: '#D97706' },
+  { id: 'exercise', name: 'نشاط بدني ورياضي',   icon: Dumbbell, color: '#10B981' },
+  { id: 'rest',     name: 'وقت راحة واستشفاء',    icon: Clock,    color: '#64748B' },
+  { id: 'other',    name: 'أنشطة أخرى',        icon: Shield,   color: '#7C3AED' },
 ];
 
 export default function FamilySchedulePage() {
@@ -48,89 +48,104 @@ export default function FamilySchedulePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', paddingBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--fp-surface)', paddingBottom: '6rem' }}>
       <FamilyNavbar />
 
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: 'clamp(0.875rem, 4vw, 2rem)' }}>
-        <header style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link href="/family/dashboard" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-            <ArrowRight size={24} />
-          </Link>
+        
+        {/* Header Widget */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)' }}>
           <div>
-            <h1 style={{ fontSize: '1.5rem', color: '#1a365d', fontWeight: '800' }}>الجدول اليومي</h1>
-            <p style={{ color: '#718096', fontSize: '0.9rem' }}>برنامج النشاط اليومي للمقيمين في المركز</p>
+            <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.4rem)', fontWeight: '900', color: 'var(--fp-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               الخطة والجدول اليومي للمقيمين
+            </h1>
+            <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.2rem' }}>متابعة تفصيلية للبرنامج والنشاط اليومي العلاجي والترفيهي</p>
           </div>
-        </header>
+          <div className="fp-glow-icon">
+            <Calendar size={22} />
+          </div>
+        </div>
 
         {/* Days Scroll */}
         <div style={{ 
           display: 'flex', 
           gap: '0.6rem', 
           overflowX: 'auto', 
-          paddingBottom: '1rem',
-          marginBottom: '1.5rem',
+          paddingBottom: '0.85rem',
+          marginBottom: '2rem',
           scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          WebkitOverflowScrolling: 'touch'
         }}>
-          {DAYS.map(day => (
-            <button
-              key={day.id}
-              onClick={() => setActiveDay(day.id)}
-              style={{
-                padding: '0.75rem 1.25rem',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '700',
-                fontSize: '0.9rem',
-                backgroundColor: activeDay === day.id ? '#1a365d' : 'white',
-                color: activeDay === day.id ? 'white' : '#718096',
-                boxShadow: activeDay === day.id ? '0 4px 12px rgba(26,54,93,0.2)' : '0 2px 4px rgba(0,0,0,0.05)',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {day.name}
-            </button>
-          ))}
+          {DAYS.map(day => {
+            const isActive = activeDay === day.id;
+            return (
+              <button
+                key={day.id}
+                onClick={() => setActiveDay(day.id)}
+                style={{
+                  padding: '0.65rem 1.35rem',
+                  borderRadius: '12px',
+                  border: isActive ? '1px solid transparent' : '1px solid var(--fp-border)',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  fontSize: '0.85rem',
+                  backgroundColor: isActive ? 'var(--fp-primary)' : 'var(--fp-glass)',
+                  color: isActive ? 'white' : 'var(--fp-text)',
+                  boxShadow: isActive ? '0 8px 16px rgba(13,40,71,0.15)' : 'var(--fp-shadow-double)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.25s',
+                  whiteSpace: 'nowrap',
+                  fontFamily: 'Cairo, sans-serif'
+                }}
+              >
+                {day.name}
+              </button>
+            );
+          })}
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem' }}>جاري التحميل...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="fp-glass-card" style={{ display: 'flex', gap: '1rem', padding: '1.25rem' }}>
+                <div className="fp-skeleton" style={{ width: '60px', height: '40px', borderRadius: '8px' }} />
+                <div className="fp-skeleton" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                <div style={{ flex: 1 }}>
+                  <div className="fp-skeleton" style={{ width: '50%', height: '1rem', marginBottom: '0.5rem' }} />
+                  <div className="fp-skeleton" style={{ width: '30%', height: '0.75rem' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {schedule.length === 0 ? (
-              <div style={{ 
-                backgroundColor: 'white', 
-                borderRadius: '16px', 
-                padding: '3rem', 
-                textAlign: 'center', 
-                color: '#a0aec0',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
-              }}>
-                <Calendar size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-                <p>لا توجد أنشطة مبرمجة لهذا اليوم</p>
+              <div className="fp-glass-card fp-animate" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                <Calendar size={48} color="#cbd5e0" style={{ margin: '0 auto 1.5rem auto', opacity: 0.5 }} />
+                <h3 style={{ color: 'var(--fp-primary)', fontWeight: '800', marginBottom: '0.5rem', fontSize: '1.1rem' }}>لا توجد أنشطة مبرمجة</h3>
+                <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>لم تتم جدولة أي نشاط أو حصة علاجية للمقيمين لهذا اليوم بعد.</p>
               </div>
             ) : (
-              schedule.map((item) => {
+              schedule.map((item, idx) => {
                 const type = ACTIVITY_TYPES.find(t => t.id === item.activity_type) || ACTIVITY_TYPES[4];
                 const Icon = type.icon;
                 return (
-                  <div key={item.id} style={{ 
-                    backgroundColor: 'white',
-                    borderRadius: '16px',
+                  <div key={item.id} className="fp-glass-card fp-animate fp-animate-delay-2" style={{ 
                     padding: '1.25rem',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '1.25rem',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-                    borderRight: `5px solid ${type.color}`
-                  }}>
-                    <div style={{ minWidth: '70px' }}>
-                      <p style={{ fontWeight: '800', color: '#1a365d', fontSize: '1.1rem', marginBottom: '0.1rem' }}>
+                    borderRight: `5px solid ${type.color}`,
+                    transition: 'transform 0.2s',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                  >
+                    <div style={{ minWidth: '70px', borderLeft: '1px solid var(--fp-border)', paddingLeft: '0.5rem' }}>
+                      <p style={{ fontWeight: '900', color: 'var(--fp-primary)', fontSize: '1.05rem', marginBottom: '0.1rem', fontFamily: 'monospace' }}>
                         {item.start_time.substring(0, 5)}
                       </p>
-                      <p style={{ fontSize: '0.75rem', color: '#a0aec0' }}>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--fp-text-muted)', fontWeight: '700', fontFamily: 'monospace' }}>
                         {item.end_time.substring(0, 5)}
                       </p>
                     </div>
@@ -144,14 +159,15 @@ export default function FamilySchedulePage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      border: `1px solid ${type.color}25`
                     }}>
-                      <Icon size={22} />
+                      <Icon size={20} />
                     </div>
 
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '1rem', color: '#1a365d', fontWeight: '700' }}>{item.activity_name}</h4>
-                      <span style={{ fontSize: '0.75rem', color: type.color, fontWeight: '600' }}>{type.name}</span>
+                      <h4 style={{ margin: 0, fontSize: '0.98rem', color: 'var(--fp-primary)', fontWeight: '800' }}>{item.activity_name}</h4>
+                      <span style={{ fontSize: '0.72rem', color: type.color, fontWeight: '800', marginTop: '0.2rem', display: 'inline-block' }}>{type.name}</span>
                     </div>
                   </div>
                 );

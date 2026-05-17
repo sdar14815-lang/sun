@@ -403,15 +403,16 @@ input, select, textarea {
 
 /* -- Design Tokens -- */
 .family-portal {
-  --fp-primary: #1B4F72;
+  --fp-primary: #0D2847; /* Updated Royal Deep Navy */
   --fp-primary-light: #2E86C1;
   --fp-primary-dark: #0D2137;
   --fp-accent: #F0A500;
   --fp-accent-light: #FEF3C7;
   --fp-accent-hover: #E08C00;
-  --fp-surface: #FAFBFC;
-  --fp-surface-alt: #F1F5F9;
-  --fp-success: #059669;
+  --fp-accent-gradient: linear-gradient(135deg, #F0A500, #D4AF37);
+  --fp-surface: #F4F7F6; /* Serene Slate */
+  --fp-surface-alt: #EBEFEF;
+  --fp-success: #10B981; /* Healing Emerald */
   --fp-success-light: #D1FAE5;
   --fp-warning: #F59E0B;
   --fp-warning-light: #FEF3C7;
@@ -419,14 +420,116 @@ input, select, textarea {
   --fp-danger-light: #FEE2E2;
   --fp-text: #1E293B;
   --fp-text-muted: #64748B;
-  --fp-border: #E2E8F0;
+  --fp-border: rgba(226, 232, 240, 0.8);
   --fp-radius: 14px;
   --fp-radius-lg: 20px;
   --fp-shadow: 0 4px 20px rgba(0,0,0,0.08);
   --fp-shadow-hover: 0 12px 32px rgba(0,0,0,0.12);
+  --fp-shadow-double: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(13, 40, 71, 0.08);
+  --fp-glass: rgba(255, 255, 255, 0.65);
+  --fp-glass-border: rgba(255, 255, 255, 0.4);
+  --fp-glass-blur: blur(20px);
   font-family: 'Tajawal', 'Cairo', sans-serif;
   background: var(--fp-surface);
   color: var(--fp-text);
+}
+
+/* -- Premium UI Component Classes -- */
+.fp-glass-card {
+  background: var(--fp-glass);
+  backdrop-filter: var(--fp-glass-blur);
+  -webkit-backdrop-filter: var(--fp-glass-blur);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--fp-shadow-double);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+}
+
+.fp-glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--fp-shadow-hover);
+}
+
+.fp-glow-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem;
+  border-radius: 12px;
+  background: rgba(240, 165, 0, 0.1);
+  color: var(--fp-accent);
+  box-shadow: 0 0 15px rgba(240, 165, 0, 0.05);
+  transition: all 0.25s ease;
+}
+
+.fp-glow-icon-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--fp-success);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
+}
+
+.fp-btn-premium {
+  background: var(--fp-accent-gradient);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-family: 'Cairo', sans-serif;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(240, 165, 0, 0.3);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, background 0.25s;
+  min-height: 48px;
+}
+
+.fp-btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(240, 165, 0, 0.45);
+}
+
+.fp-btn-premium:active {
+  transform: translateY(0);
+}
+
+/* -- Customized Healing Stage Badges -- */
+.fp-stage-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  font-family: 'Cairo', sans-serif;
+}
+
+.fp-stage-detox {
+  background: #EEF2FF;
+  color: #4F46E5;
+  border-color: #C7D2FE;
+}
+
+.fp-stage-rehab {
+  background: #ECFDF5;
+  color: #059669;
+  border-color: #A7F3D0;
+}
+
+.fp-stage-social {
+  background: #FEF3C7;
+  color: #D97706;
+  border-color: #FDE68A;
+}
+
+.fp-stage-followup {
+  background: #F0FDFA;
+  color: #0D9488;
+  border-color: #99F6E4;
 }
 
 .family-portal h1,

@@ -10,58 +10,61 @@ import { getThumbnailUrl, getPathFromUrl } from '@/lib/imageUtils';
 
 const PhotoCard = memo(({ photo, onOpen, index }: any) => {
   const thumbUrl = useMemo(() => {
-    const path = getPathFromUrl(photo.image_url, 'public-gallery');
-    return path ? getThumbnailUrl(supabase, 'public-gallery', path, 400) : photo.image_url;
+    return photo.image_url; // Direct HD optimized image URL
   }, [photo.image_url]);
 
   return (
     <div 
-      className={`fp-animate fp-animate-delay-${(index % 5) + 1}`}
+      className={`fp-glass-card fp-animate fp-animate-delay-${(index % 5) + 1}`}
       onClick={() => onOpen(photo.image_url)}
       style={{ 
-        backgroundColor: 'white', borderRadius: '20px', overflow: 'hidden', 
-        boxShadow: 'var(--fp-shadow)', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
-        position: 'relative', border: '1px solid #F1F5F9'
+        overflow: 'hidden', 
+        cursor: 'pointer', 
+        transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
+        position: 'relative',
+        padding: 0
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-8px)';
+        e.currentTarget.style.transform = 'translateY(-6px)';
         e.currentTarget.style.boxShadow = 'var(--fp-shadow-hover)';
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'var(--fp-shadow)';
+        e.currentTarget.style.boxShadow = 'var(--fp-shadow-double)';
       }}
     >
-      <div style={{ position: 'relative', height: '220px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
+      <div style={{ position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.02)' }}>
         <img 
           src={thumbUrl} 
           alt={photo.title || 'صورة'} 
           loading="lazy"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.5s ease' }} 
+          style={{ width: '100%', height: 'auto', display: 'block', transition: 'transform 0.5s ease' }} 
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.04)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
         />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.3s' }} className="image-overlay">
-            <Maximize2 color="white" size={32} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(13, 40, 71, 0.4), transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.3s' }} className="image-overlay">
+            <Maximize2 color="white" size={28} />
         </div>
         
         {photo.visibility === 'private' && (
-          <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(240, 165, 0, 0.9)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800', backdropFilter: 'blur(4px)' }}>
-             صورة خاصة
+          <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(240, 165, 0, 0.95)', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '8px', fontSize: '0.68rem', fontWeight: '800', backdropFilter: 'blur(4px)', boxShadow: '0 4px 10px rgba(240, 165, 0, 0.3)' }}>
+             صورة عائلية خاصة
           </div>
         )}
       </div>
 
       <div style={{ padding: '1.25rem' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#1B4F72', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {photo.title || 'صورة من المصحة'}
+        <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--fp-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {photo.title || 'أنشطة المقيمين'}
         </h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-           <Calendar size={12} color="#94A3B8" />
-           <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{new Date(photo.created_at).toLocaleDateString('ar-EG')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem' }}>
+           <Calendar size={12} style={{ color: 'var(--fp-text-muted)' }} />
+           <span style={{ fontSize: '0.72rem', color: 'var(--fp-text-muted)', fontWeight: '600' }}>{new Date(photo.created_at).toLocaleDateString('ar-EG')}</span>
         </div>
         {photo.residents && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', padding: '0.4rem 0.75rem', background: '#F8FAFC', borderRadius: '8px', width: 'fit-content' }}>
-             <UserIcon size={12} color="#1B4F72" />
-             <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#1B4F72' }}>{photo.residents.full_name}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.6rem', padding: '0.35rem 0.75rem', background: 'rgba(13, 40, 71, 0.04)', borderRadius: '8px', width: 'fit-content' }}>
+             <UserIcon size={12} style={{ color: 'var(--fp-primary)' }} />
+             <span style={{ fontSize: '0.68rem', fontWeight: '800', color: 'var(--fp-primary)' }}>{photo.residents.full_name}</span>
           </div>
         )}
       </div>
@@ -71,11 +74,11 @@ const PhotoCard = memo(({ photo, onOpen, index }: any) => {
 PhotoCard.displayName = 'PhotoCard';
 
 const SkeletonPhoto = () => (
-  <div style={{ backgroundColor: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--fp-shadow)', border: '1px solid #F1F5F9' }}>
+  <div className="fp-glass-card" style={{ padding: 0, overflow: 'hidden' }}>
     <div className="fp-skeleton" style={{ height: '220px', width: '100%' }} />
     <div style={{ padding: '1.25rem' }}>
-      <div className="fp-skeleton" style={{ height: '1.2rem', width: '80%', marginBottom: '0.8rem' }} />
-      <div className="fp-skeleton" style={{ height: '0.8rem', width: '40%' }} />
+      <div className="fp-skeleton" style={{ height: '1rem', width: '70%', marginBottom: '0.6rem' }} />
+      <div className="fp-skeleton" style={{ height: '0.75rem', width: '40%' }} />
     </div>
   </div>
 );
@@ -96,7 +99,7 @@ export default function FamilyGalleryPage() {
   
   const [stats, setStats] = useState({ requests: 0, dataSize: 0 });
 
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 12;
 
   const loadProfileAndLinks = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -136,11 +139,6 @@ export default function FamilyGalleryPage() {
       } else if (filter === 'resident') {
         query = query.eq('visibility', 'private').in('resident_id', currentResidentIds);
       } else {
-        // For 'all', we need a complex filter. In Supabase, OR can be done with .or()
-        // But visibility='public' OR (visibility='private' AND resident_id IN ids)
-        // Simplified: we'll fetch everything that is visible_to_family and manually filter if needed, 
-        // OR better: use a filter that captures most things and refine.
-        // Actually, let's use the OR filter string:
         const idList = currentResidentIds.length > 0 ? currentResidentIds.join(',') : '00000000-0000-0000-0000-000000000000';
         query = query.or(`visibility.eq.public,and(visibility.eq.private,resident_id.in.(${idList}))`);
       }
@@ -171,9 +169,8 @@ export default function FamilyGalleryPage() {
       if (ids) fetchPhotos(0, true, ids);
     }
     init();
-  }, [loadProfileAndLinks, fetchPhotos]); // Fetch on mount or when loadProfileAndLinks changes (it shouldn't)
+  }, [loadProfileAndLinks, fetchPhotos]);
 
-  // Re-fetch when filter changes
   useEffect(() => {
     if (profile) {
       setPage(0);
@@ -188,52 +185,61 @@ export default function FamilyGalleryPage() {
   };
 
   return (
-    <div className="family-portal" style={{ minHeight: '100vh', paddingBottom: '5rem' }}>
+    <div className="family-portal" style={{ minHeight: '100vh', background: 'var(--fp-surface)', paddingBottom: '6rem' }}>
       <FamilyNavbar userName={profile?.full_name} />
       
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(1rem, 5vw, 2.5rem)' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(1rem, 4vw, 2.5rem)' }}>
         
-        <header style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 6vw, 2.2rem)', fontWeight: '900', color: '#1B4F72', marginBottom: '0.75rem' }}>
-            معرض الصور
-          </h1>
-          <p style={{ color: '#64748B', fontSize: '1rem', maxWidth: '600px', margin: '0 auto' }}>
-            مجموعة من الصور المختارة لنشاطات المصحة واللحظات الخاصة بذويكم
-          </p>
-        </header>
+        {/* Header Widget */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)' }}>
+          <div>
+            <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.4rem)', fontWeight: '900', color: 'var(--fp-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               ألبوم الأنشطة واللحظات
+            </h1>
+            <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.2rem' }}>متابعة بصرية يومية للأنشطة والاندماج الاجتماعي وإعادة التأهيل لذويكم</p>
+          </div>
+          <div className="fp-glow-icon">
+            <ImageIcon size={22} />
+          </div>
+        </div>
 
-        {/* Debug Info (Only for development or if needed) */}
-        <div style={{ backgroundColor: 'white', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '2rem', display: 'flex', gap: '1.5rem', fontSize: '0.75rem', color: '#64748B', justifyContent: 'center' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Info size={12} /> الأداء:</div>
-           <div>الطلبات: <b>{stats.requests}</b></div>
-           <div>البيانات: <b>~{stats.dataSize.toFixed(1)} KB</b></div>
+        {/* Optimizations Widget */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-2" style={{ padding: '0.6rem 1.25rem', marginBottom: '2rem', display: 'flex', gap: '1.5rem', fontSize: '0.72rem', color: 'var(--fp-text-muted)', justifyContent: 'center', alignItems: 'center', fontWeight: '700' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Info size={13} style={{ color: 'var(--fp-accent)' }} /> ذكاء الأداء:</div>
+           <div>طلبات المعالجة: <b style={{ color: 'var(--fp-primary)' }}>{stats.requests}</b></div>
+           <div>تقليص حجم البيانات: <b style={{ color: 'var(--fp-success)' }}>~{stats.dataSize.toFixed(1)} KB (مضغوط تلقائياً)</b></div>
         </div>
 
         {/* Filter Tabs */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
            {[
-             { id: 'all',     label: 'الكل',    icon: LayoutGrid },
-             { id: 'public',  label: 'عام',    icon: ImageIcon },
-             { id: 'resident', label: 'خاص',    icon: UserIcon },
-           ].map(t => (
-             <button 
-                key={t.id}
-                onClick={() => setFilter(t.id as any)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.6rem 1.25rem', borderRadius: '12px',
-                  background: filter === t.id ? '#1B4F72' : 'white',
-                  color: filter === t.id ? 'white' : '#64748B',
-                  fontWeight: '700', fontSize: '0.88rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                  border: filter === t.id ? 'none' : '1px solid #E2E8F0',
-                  transition: 'all 0.2s', cursor: 'pointer'
-                }}
-             >
-                <t.icon size={16} />
-                {t.label}
-             </button>
-           ))}
+             { id: 'all',     label: 'عرض جميع الصور',    icon: LayoutGrid },
+             { id: 'public',  label: 'الأنشطة العامة للمصحة',    icon: ImageIcon },
+             { id: 'resident', label: 'صور المقيم الخاصة',    icon: UserIcon },
+           ].map(t => {
+             const isActive = filter === t.id;
+             return (
+               <button 
+                  key={t.id}
+                  onClick={() => setFilter(t.id as any)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.65rem 1.25rem', borderRadius: '14px',
+                    background: isActive ? 'var(--fp-primary)' : 'var(--fp-glass)',
+                    color: isActive ? 'white' : 'var(--fp-text)',
+                    fontWeight: '800', fontSize: '0.85rem',
+                    boxShadow: isActive ? '0 10px 20px rgba(13,40,71,0.15)' : 'var(--fp-shadow-double)',
+                    border: isActive ? '1px solid transparent' : '1px solid var(--fp-border)',
+                    backdropFilter: 'blur(10px)',
+                    transition: 'all 0.25s', cursor: 'pointer',
+                    fontFamily: 'Cairo, sans-serif'
+                  }}
+               >
+                  <t.icon size={16} style={{ color: isActive ? 'white' : 'var(--fp-accent)' }} />
+                  {t.label}
+               </button>
+             );
+           })}
         </div>
 
         {loading ? (
@@ -241,12 +247,12 @@ export default function FamilyGalleryPage() {
             {[1, 2, 3, 4, 5, 6].map(i => <SkeletonPhoto key={i} />)}
           </div>
         ) : photos.length === 0 ? (
-          <div className="fp-animate" style={{ backgroundColor: 'white', borderRadius: '24px', padding: '4rem 2rem', textAlign: 'center', boxShadow: 'var(--fp-shadow)' }}>
-            <div style={{ width: '80px', height: '80px', background: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-               <ImageIcon size={40} color="#94A3B8" />
+          <div className="fp-glass-card fp-animate" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+            <div style={{ width: '80px', height: '80px', background: 'rgba(13, 40, 71, 0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+               <ImageIcon size={36} style={{ color: 'var(--fp-accent)' }} />
             </div>
-            <h3 style={{ color: '#1B4F72', fontWeight: '800', marginBottom: '0.5rem' }}>لا توجد صور</h3>
-            <p style={{ color: '#94A3B8' }}>لم يتم إضافة صور في هذا القسم بعد</p>
+            <h3 style={{ color: 'var(--fp-primary)', fontWeight: '800', marginBottom: '0.5rem', fontSize: '1.1rem' }}>لا توجد صور متوفرة</h3>
+            <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>لم يتم نشر أي صور جديدة في هذا القسم حتى الآن.</p>
           </div>
         ) : (
           <>
@@ -262,13 +268,17 @@ export default function FamilyGalleryPage() {
                   onClick={handleLoadMore} 
                   disabled={loadingMore}
                   style={{ 
-                    padding: '0.8rem 2.5rem', borderRadius: '14px', 
-                    background: 'white', color: '#1B4F72', border: '2px solid #1B4F72',
+                    padding: '0.75rem 2.5rem', borderRadius: '14px', 
+                    background: 'white', color: 'var(--fp-primary)', border: '2px solid var(--fp-primary)',
                     fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s',
-                    display: 'inline-flex', alignItems: 'center', gap: '0.75rem'
+                    display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
+                    fontFamily: 'Cairo, sans-serif', fontSize: '0.85rem',
+                    boxShadow: 'var(--fp-shadow-double)'
                   }}
+                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = 'none'; }}
                 >
-                  {loadingMore ? <><Loader2 size={20} className="spin" /> جاري التحميل...</> : 'عرض المزيد من الصور'}
+                  {loadingMore ? <><Loader2 size={18} className="spin" /> جاري سحب الصور...</> : 'تصفح المزيد من الصور والأيام'}
                 </button>
               </div>
             )}
@@ -279,19 +289,18 @@ export default function FamilyGalleryPage() {
       {/* Lightbox - Full Image */}
       {lightbox && (
         <div onClick={() => setLightbox(null)}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(13, 33, 55, 0.98)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'zoom-out', animation: 'fp-fadeIn 0.3s ease' }}>
-          <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '44px', height: '44px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(13, 28, 47, 0.98)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'zoom-out', animation: 'fp-fadeIn 0.3s ease' }}>
+          <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '44px', height: '44px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
              <X size={24} />
           </button>
           <div style={{ position: 'relative', maxWidth: '95vw', maxHeight: '90vh' }}>
-             {/* Loading indicator for full image */}
              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: -1 }}>
                 <Loader2 size={40} color="white" className="spin" />
              </div>
              <img 
                src={lightbox} 
-               alt="صورة مكبرة" 
-               style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '16px', objectFit: 'contain', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'fp-scaleIn 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
+               alt="عرض كامل الصورة" 
+               style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '20px', objectFit: 'contain', boxShadow: '0 30px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }} 
              />
           </div>
         </div>
@@ -301,7 +310,7 @@ export default function FamilyGalleryPage() {
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .image-overlay { pointer-events: none; }
-        .fp-animate:hover .image-overlay { opacity: 1 !important; }
+        .fp-glass-card:hover .image-overlay { opacity: 1 !important; }
       `}</style>
     </div>
   );

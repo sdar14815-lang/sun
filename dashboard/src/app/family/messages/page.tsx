@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send, Sparkles } from 'lucide-react';
 
 export default function FamilyMessagesPage() {
   const router = useRouter();
@@ -61,114 +61,129 @@ export default function FamilyMessagesPage() {
     }
   }
 
-  const statusInfo: Record<string, { label: string; color: string; bg: string }> = {
-    open: { label: 'مرسلة', color: '#2b6cb0', bg: '#ebf8ff' },
-    answered: { label: 'تم الرد', color: '#6b46c1', bg: '#faf5ff' },
-    closed: { label: 'مغلقة', color: '#2f855a', bg: '#f0fff4' },
+  const statusInfo: Record<string, { label: string; color: string; bg: string; border: string }> = {
+    open: { label: 'مرسلة للإدارة', color: 'var(--fp-primary)', bg: 'rgba(13, 40, 71, 0.05)', border: 'rgba(13, 40, 71, 0.12)' },
+    answered: { label: 'تم الرد من الطبيب', color: 'var(--fp-accent)', bg: 'rgba(240, 165, 0, 0.05)', border: 'rgba(240, 165, 0, 0.15)' },
+    closed: { label: 'مستلمة ومغلقة', color: 'var(--fp-success)', bg: 'rgba(16, 185, 129, 0.05)', border: 'rgba(16, 185, 129, 0.15)' },
   };
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f0f4f8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--fp-surface)' }}>
         <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div className="spinner" style={{ marginBottom: '1rem' }} />
-          <p style={{ color: '#718096', fontFamily: 'Cairo, sans-serif' }}>جاري التحميل...</p>
+          <div className="fp-skeleton" style={{ width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 1rem auto' }} />
+          <p style={{ color: 'var(--fp-text-muted)', fontFamily: 'Cairo, sans-serif', fontWeight: '700' }}>جاري تحميل المراسلات...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', paddingBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--fp-surface)', paddingBottom: '6rem' }}>
       <FamilyNavbar userName={profile?.full_name} />
       
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: 'clamp(1rem, 4vw, 2rem)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        
+        {/* Header Widget */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: '800', color: '#1a365d', marginBottom: '0.25rem' }}>الرسائل</h1>
-            <p style={{ color: '#718096', fontSize: '0.9rem' }}>تواصل مع فريق الرعاية في أي وقت</p>
+            <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.4rem)', fontWeight: '900', color: 'var(--fp-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               المراسلة الفورية الفعالة
+            </h1>
+            <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.2rem' }}>تواصل مباشر وسري وآمن مع الكادر الطبي والمشرفين على الحالة</p>
           </div>
           
           <button onClick={() => setShowForm(!showForm)}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              background: '#1a365d', color: 'white', border: 'none', 
-              padding: '0.75rem 1.25rem', borderRadius: '10px', 
-              cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', 
-              fontFamily: 'inherit', boxShadow: '0 4px 10px rgba(26,54,93,0.2)',
+              background: 'linear-gradient(135deg, var(--fp-primary), var(--fp-primary-light))', color: 'white', border: 'none', 
+              padding: '0.65rem 1.25rem', borderRadius: '12px', 
+              cursor: 'pointer', fontWeight: '800', fontSize: '0.82rem', 
+              fontFamily: 'Cairo, sans-serif', boxShadow: 'var(--fp-shadow-double)',
               minHeight: '44px',
               width: 'auto',
-              justifyContent: 'center'
-            }}>
-            <Send size={16} /> رسالة جديدة
+              justifyContent: 'center',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseOut={e => e.currentTarget.style.transform = 'none'}
+            >
+            <Send size={15} /> إرسال رسالة جديدة
           </button>
         </div>
 
+        {/* Message Input Dialog */}
         {showForm && (
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: 'clamp(1.25rem, 4vw, 1.75rem)', boxShadow: '0 2px 15px rgba(0,0,0,0.08)', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-            <h3 style={{ fontWeight: '700', color: '#1a365d', marginBottom: '1.25rem', fontSize: '1.05rem' }}>رسالة جديدة للإدارة</h3>
+          <div className="fp-glass-card fp-animate" style={{ marginBottom: '1.5rem', borderRight: '5px solid var(--fp-accent)' }}>
+            <h3 style={{ fontWeight: '900', color: 'var(--fp-primary)', marginBottom: '1.25rem', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Sparkles size={16} style={{ color: 'var(--fp-accent)' }} /> إرسال استفسار جديد
+            </h3>
             <form onSubmit={sendMessage} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem', color: '#4a5568' }}>المقيم المرتبط بالرسالة</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', fontSize: '0.85rem', color: 'var(--fp-primary)' }}>المقيم المرتبط بالاستفسار *</label>
                 <select required value={form.resident_id} onChange={e => setForm({ ...form, resident_id: e.target.value })}
-                  style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '2px solid #e2e8f0', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', backgroundColor: 'white' }}>
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--fp-border)', outline: 'none', fontFamily: 'Cairo, sans-serif', fontSize: '0.9rem', backgroundColor: 'white', fontWeight: '600' }}>
                   <option value="">اختر المقيم...</option>
                   {residents.map((r: any) => <option key={r.id} value={r.id}>{r.full_name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem', color: '#4a5568' }}>نص الرسالة</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', fontSize: '0.85rem', color: 'var(--fp-primary)' }}>نص الرسالة والاستفسار *</label>
                 <textarea required value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} rows={4}
-                  placeholder="اكتب رسالتك هنا..."
-                  style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '2px solid #e2e8f0', outline: 'none', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.95rem', minHeight: '100px' }} />
+                  placeholder="اكتب استفسارك بالتفصيل وسيقوم الأخصائي المتابع بالرد عليك في أقرب وقت..."
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--fp-border)', outline: 'none', resize: 'vertical', fontFamily: 'Cairo, sans-serif', fontSize: '0.9rem', minHeight: '100px', fontWeight: '600', lineHeight: '1.7' }} />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowForm(false)} 
-                  style={{ padding: '0.75rem 1.5rem', borderRadius: '10px', background: '#f1f5f9', color: '#4a5568', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: '600', minHeight: '44px' }}>
+                  style={{ padding: '0.65rem 1.5rem', borderRadius: '12px', background: 'white', color: 'var(--fp-primary)', border: '1px solid var(--fp-border)', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: '800', minHeight: '44px', fontSize: '0.82rem', boxShadow: 'var(--fp-shadow-double)' }}>
                   إلغاء
                 </button>
                 <button type="submit" disabled={sending}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '10px', background: 'linear-gradient(135deg, #1a365d, #2d4a8a)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: '600', minHeight: '44px' }}>
-                  <Send size={16} /> {sending ? 'جاري الإرسال...' : 'إرسال الرسالة'}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--fp-primary), var(--fp-primary-light))', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: '800', minHeight: '44px', fontSize: '0.82rem', boxShadow: 'var(--fp-shadow-double)' }}>
+                  <Send size={15} /> {sending ? 'جاري التوجيه...' : 'إرسال الرسالة الآن'}
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Message Thread History */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {messages.length === 0 ? (
-            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: 'clamp(2rem, 5vw, 3rem)', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <MessageSquare size={48} color="#a0aec0" style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
-              <p style={{ color: '#718096', fontSize: '0.95rem' }}>لا توجد رسائل بعد</p>
+            <div className="fp-glass-card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+              <MessageSquare size={48} color="#a0aec0" style={{ margin: '0 auto 1.5rem auto', opacity: 0.5 }} />
+              <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.95rem', fontWeight: '700' }}>لا يوجد سجل مراسلات حالياً. انقر على "إرسال رسالة جديدة" للبدء.</p>
             </div>
-          ) : messages.map(msg => {
+          ) : messages.map((msg, idx) => {
             const s = statusInfo[msg.status] || statusInfo['open'];
             return (
-              <div key={msg.id} style={{ 
-                backgroundColor: 'white', 
-                borderRadius: '16px', 
-                padding: 'clamp(1.25rem, 4vw, 1.5rem)', 
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                border: '1px solid #edf2f7'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div key={msg.id} className="fp-glass-card fp-animate fp-animate-delay-2" style={{ 
+                borderRight: `5px solid ${s.color}`,
+                transition: 'transform 0.2s',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: s.color }} />
-                    <span style={{ fontSize: '0.75rem', color: s.color, fontWeight: '700', backgroundColor: s.bg, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>{s.label}</span>
+                    <span style={{ fontSize: '0.65rem', color: s.color, fontWeight: '800', backgroundColor: s.bg, padding: '0.25rem 0.6rem', borderRadius: '8px', border: `1px solid ${s.border}` }}>{s.label}</span>
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#718096', backgroundColor: '#f7fafc', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--fp-text-muted)', backgroundColor: 'white', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid var(--fp-border)', fontWeight: '600' }}>
                     {new Date(msg.created_at).toLocaleDateString('ar-EG')}
                   </span>
                 </div>
-                <p style={{ color: '#2d3748', lineHeight: '1.7', fontSize: '0.95rem', marginBottom: msg.reply_text ? '1rem' : '0', whiteSpace: 'pre-wrap' }}>
+                
+                <p style={{ color: '#2d3748', lineHeight: '1.7', fontSize: '0.92rem', marginBottom: msg.reply_text ? '1.25rem' : '0', whiteSpace: 'pre-wrap', fontWeight: '600' }}>
                   {msg.body || msg.message}
                 </p>
                 
                 {msg.reply_text && (
-                  <div style={{ backgroundColor: '#faf5ff', borderRight: '4px solid #6b46c1', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-                    <p style={{ fontSize: '0.75rem', color: '#6b46c1', fontWeight: '700', marginBottom: '0.35rem' }}>رد الإدارة</p>
-                    <p style={{ color: '#4a5568', fontSize: '0.9rem', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>{msg.reply_text}</p>
+                  <div style={{ backgroundColor: 'white', borderRight: '4px solid var(--fp-accent)', padding: '1.25rem', borderRadius: '12px', marginTop: '1rem', border: '1px solid var(--fp-border)', borderRightWidth: '5px' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--fp-accent)', fontWeight: '800', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Sparkles size={14} /> رد الإدارة والأخصائي المتابع:
+                    </p>
+                    <p style={{ color: '#4a5568', fontSize: '0.88rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontWeight: '600' }}>{msg.reply_text}</p>
                   </div>
                 )}
               </div>

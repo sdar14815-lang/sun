@@ -1,29 +1,29 @@
 'use client';
 import { useState, useEffect } from 'react';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, HelpCircle, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const FAQS = [
   {
     q: 'كيف يتم التعامل مع الانتكاسات أثناء فترة التأهيل؟',
-    a: 'يتم التعامل مع الانتكاسات كجزء من عملية التعلم. فريقنا الطبي والنفسي يقوم بتقييم الحالة فوراً وتعديل الخطة العلاجية لضمان العودة للمسار الصحيح مع تقديم الدعم المكثف.'
+    a: 'يتم التعامل مع الانتكاسات كجزء من عملية التقييم والتعلّم المستمر. يقوم الفريق الطبي والنفسي بمراجعة وتعديل الخطة العلاجية فوراً لتقديم دعم استثنائي مركّز وسريع يضمن عودة المقيم لمساره الصحيح بثبات.'
   },
   {
     q: 'متى يمكنني إحضار ملابس جديدة أو مستلزمات شخصية؟',
-    a: 'يمكن إحضار المستلزمات بعد التنسيق مع مشرف الحالة عبر صفحة "الطلبات" في البوابة، وسيتم تحديد الموعد المناسب للتسليم.'
+    a: 'يمكنكم إرسال طلب المستلزمات بكل سهولة من خلال صفحة "الاحتياجات" في هذه البوابة. بعد مراجعة وقبول الطلب من الأخصائي المتابع، ستصلكم موافقة فورية وتحديد توقيت التسليم المناسب.'
   },
   {
-    q: 'ما هي سياسة الاتصال الهاتفي مع المقيم؟',
-    a: 'تختلف السياسة حسب مرحلة العلاج. عادة ما يسمح بالاتصال في مراحل متقدمة لضمان تركيز المقيم في البرنامج العلاجي الأولية. يرجى مراجعة مشرفك الخاص.'
+    q: 'ما هي سياسة التواصل الهاتفي والزيارات مع المقيم؟',
+    a: 'تعتمد سياسة التواصل الهاتفي على التقدم الفعلي والمرحلة العلاجية الحالية للمقيم. تبدأ السياسة حذرة في مرحلة الانسحاب (Detox) لضمان التركيز التام، وتتوسع تدريجياً لتعزيز الروابط الأسرية في مراحل الدمج.'
   },
   {
-    q: 'هل يمكنني زيارة المقيم في أي وقت؟',
-    a: 'الزيارات محددة بمواعيد يقررها الفريق العلاجي لضمان سير البرنامج اليومي للمقيمين واستقرار حالتهم. يرجى التنسيق مع المشرف المتابع.'
+    q: 'كيف أتابع تطور الحالة الطبية والتزام المقيم بانتظام؟',
+    a: 'يتم إصدار تقارير دورية وشاملة عبر قسم "التقارير" في البوابة، وتتضمن تحديثات أسبوعية تفصيلية للجانب الطبي، النفسي، الاجتماعي ومؤشر الالتزام العام المدار مباشرة من الأطباء.'
   },
   {
-    q: 'كيف أتابع تطور الحالة الطبية؟',
-    a: 'يتم نشر تقارير أسبوعية مفصلة في قسم "التقارير" توضح التقدم السلوكي والطبي والاجتماعي.'
+    q: 'ما هو دور الأسرة في دعم رحلة الاستشفاء؟',
+    a: 'دور الأسرة محوري وحاسم في مرحلة الدمج المجتمعي والمتابعة اللاحقة. نوصي بحضور الجلسات الإرشادية للأهالي وقراءة النصائح الدورية لدعم بيئة خالية من المحفزات بعد التخرج.'
   }
 ];
 
@@ -41,69 +41,84 @@ export default function FAQPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', paddingBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--fp-surface)', paddingBottom: '6rem' }}>
       <FamilyNavbar userName={userName} />
       
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: 'clamp(1rem, 4vw, 2rem)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <HelpCircle size={48} color="#1a365d" style={{ marginBottom: '1rem' }} />
-          <h1 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1a365d' }}>الأسئلة الشائعة للأهالي</h1>
-          <p style={{ color: '#718096', marginTop: '0.5rem' }}>كل ما تحتاج معرفته عن رحلة التعافي في دار شمس</p>
+        
+        {/* Header Widget */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)' }}>
+          <div>
+            <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.4rem)', fontWeight: '900', color: 'var(--fp-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               الأسئلة الشائعة والإرشادات
+            </h1>
+            <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.2rem' }}>إجابات وافية عن استفساراتكم حول رحلة العلاج والتعافي بدار شمس</p>
+          </div>
+          <div className="fp-glow-icon">
+            <HelpCircle size={22} />
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {FAQS.map((faq, i) => (
-            <div key={i} style={{ 
-              backgroundColor: 'white', 
-              borderRadius: '16px', 
-              overflow: 'hidden',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              border: '1px solid #e2e8f0'
-            }}>
-              <button 
-                onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                style={{
-                  width: '100%',
-                  padding: '1.25rem 1.5rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'right',
-                  fontFamily: 'inherit'
-                }}
-              >
-                <span style={{ fontWeight: '700', color: '#1a365d', fontSize: '1rem' }}>{faq.q}</span>
-                {openIndex === i ? <ChevronUp size={20} color="#718096" /> : <ChevronDown size={20} color="#718096" />}
-              </button>
-              
-              {openIndex === i && (
-                <div style={{ 
-                  padding: '0 1.5rem 1.5rem 1.5rem', 
-                  color: '#4a5568', 
-                  lineHeight: '1.8',
-                  fontSize: '0.95rem'
-                }}>
-                  <div style={{ height: '1px', background: '#edf2f7', marginBottom: '1rem' }} />
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
+          {FAQS.map((faq, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div key={i} className="fp-glass-card fp-animate fp-animate-delay-2" style={{ 
+                overflow: 'hidden',
+                padding: 0,
+                border: isOpen ? '1px solid rgba(240, 165, 0, 0.25)' : '1px solid var(--fp-border)',
+                transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)'
+              }}>
+                <button 
+                  onClick={() => setOpenIndex(isOpen ? null : i)}
+                  style={{
+                    width: '100%',
+                    padding: '1.25rem 1.5rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'right',
+                    fontFamily: 'Cairo, sans-serif'
+                  }}
+                >
+                  <span style={{ fontWeight: '900', color: isOpen ? 'var(--fp-primary)' : 'var(--fp-text)', fontSize: '0.92rem' }}>{faq.q}</span>
+                  {isOpen ? <ChevronUp size={18} style={{ color: 'var(--fp-accent)' }} /> : <ChevronDown size={18} style={{ color: 'var(--fp-text-muted)' }} />}
+                </button>
+                
+                {isOpen && (
+                  <div style={{ 
+                    padding: '0 1.5rem 1.5rem 1.5rem', 
+                    color: '#4a5568', 
+                    lineHeight: '1.8',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    animation: 'fp-fadeIn 0.25s ease'
+                  }}>
+                    <div style={{ height: '1px', background: 'var(--fp-border)', marginBottom: '1rem' }} />
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        <div style={{ 
+        {/* FAQ Support Center Banner */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-3" style={{ 
           marginTop: '3rem', 
-          backgroundColor: '#ebf8ff', 
-          padding: '1.5rem', 
-          borderRadius: '16px', 
           textAlign: 'center',
-          border: '1px solid #bee3f8'
+          borderRight: '5px solid var(--fp-accent)',
+          borderLeft: '5px solid var(--fp-accent)'
         }}>
-          <p style={{ color: '#2b6cb0', fontWeight: '600', marginBottom: '0.5rem' }}>هل لديك سؤال آخر؟</p>
-          <p style={{ color: '#4a5568', fontSize: '0.9rem' }}>يمكنك دائماً التواصل مع مشرف الحالة عبر نظام الرسائل أو الواتساب.</p>
+          <p style={{ color: 'var(--fp-accent)', fontWeight: '900', marginBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+            <Sparkles size={16} /> هل لديكم أي استفسارات أخرى؟
+          </p>
+          <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.82rem', fontWeight: '700', lineHeight: 1.6 }}>
+             لا تترددوا أبداً في التحدث المباشر مع أخصائي الحالة عبر بوابة <b style={{ color: 'var(--fp-primary)' }}>"المراسلات"</b>، أو التنسيق معنا هاتفياً لتقديم أفضل رعاية وتوجيه.
+          </p>
         </div>
       </div>
     </div>
