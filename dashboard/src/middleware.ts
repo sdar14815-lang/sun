@@ -40,6 +40,9 @@ export async function middleware(req: NextRequest) {
   // 5. Routing and Guard Logic
   if (!session) {
     // --- User is NOT logged in ---
+    if (pathname === '/' || pathname === '/index.html') {
+      return NextResponse.redirect(new URL('/family/login', req.url));
+    }
     if (isFamilyRoute) {
       if (!isFamilyLoginRoute) {
         return NextResponse.redirect(new URL('/family/login', req.url));
