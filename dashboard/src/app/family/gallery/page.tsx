@@ -115,7 +115,7 @@ export default function FamilyGalleryPage() {
     // Combined Query: Fetch profile details and family links in a single request
     const { data: prof } = await supabase
       .from('profiles')
-      .select('id, full_name, role, family_links(resident_id, is_active)')
+      .select('id, full_name, role, status, family_links(resident_id, is_active)')
       .eq('id', user.id)
       .single();
       

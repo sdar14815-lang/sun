@@ -71,7 +71,7 @@ export default function FamilyMessagesPage() {
       const { error } = await supabase.from('messages').insert({
         family_user_id: user?.id,
         resident_id: form.resident_id || null,
-        message: form.message,
+        body: form.message,
         status: 'open',
         sender_id: user?.id,
       });
