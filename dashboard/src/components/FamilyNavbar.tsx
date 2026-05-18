@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar, ChevronDown } from 'lucide-react';
+import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar, ChevronDown, Tv } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 
@@ -17,6 +17,7 @@ const desktopItems = [
 
 // ── Dropdown items (Desktop "More" menu) ──
 const dropdownItems = [
+  { name: 'بث الاطمئنان اليومي 🔴', icon: Tv, path: '/family/live' },
   { name: 'جدول اليوم', icon: Calendar, path: '/family/schedule' },
   { name: 'طلب مستلزمات', icon: MessageCircle, path: '/family/needs' },
   { name: 'أخبار المصحة', icon: Newspaper, path: '/family/news' },
@@ -60,6 +61,7 @@ const groupedCategories = [
   {
     title: '📸 مصحة شمس والمجتمع',
     items: [
+      { name: 'بث الاطمئنان اليومي 🔴', icon: Tv, path: '/family/live' },
       { name: 'ألبوم صور الأنشطة', icon: Image, path: '/family/gallery' },
       { name: 'أخبار وفعاليات شمس', icon: Newspaper, path: '/family/news' },
       { name: 'الأسئلة الشائعة', icon: Info, path: '/family/faq' },

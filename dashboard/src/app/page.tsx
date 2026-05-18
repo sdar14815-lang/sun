@@ -42,7 +42,7 @@ export default function DashboardPage() {
         unreadMessagesCount: msgCountRes.count || 0,
       });
 
-      const [recentRes, recentMsgs] = await Promise.all([
+      const [recentRes, recentMsgsRes, profilesRes, residentsRes] = await Promise.all([
         supabase
           .from('residents')
           .select('id, full_name, file_number, current_stage, current_status, created_at')
@@ -50,17 +50,24 @@ export default function DashboardPage() {
           .limit(5),
         supabase
           .from('messages')
-          .select(`
-            id, message, status, created_at, family_user_id, resident_id,
-            profiles!family_user_id(full_name),
-            residents!resident_id(full_name)
-          `)
+          .select('*')
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(5),
+        supabase.from('profiles').select('id, full_name'),
+        supabase.from('residents').select('id, full_name')
       ]);
 
+      const profilesMap = new Map(profilesRes.data?.map(p => [p.id, p]) || []);
+      const residentsMap = new Map(residentsRes.data?.map(r => [r.id, r]) || []);
+
+      const joinedMsgs = (recentMsgsRes.data || []).map(msg => ({
+        ...msg,
+        profiles: profilesMap.get(msg.family_user_id) || null,
+        residents: residentsMap.get(msg.resident_id) || null
+      }));
+
       setRecentUpdates(recentRes.data || []);
-      setRecentMessages(recentMsgs.data || []);
+      setRecentMessages(joinedMsgs);
     } catch (error) {
       console.error('Failed to load dashboard data', error);
     } finally {

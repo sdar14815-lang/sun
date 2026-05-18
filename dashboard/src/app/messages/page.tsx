@@ -17,30 +17,37 @@ export default function MessagesPage() {
 
   async function fetchMessages() {
     try {
-      // Query safe: only existing columns + optional join
-      const { data, error } = await supabase
+      setLoading(true);
+      // 1. Fetch flat messages
+      const { data: msgs, error: msgsError } = await supabase
         .from('messages')
-        .select(`
-          id, message, status, created_at, reply_text, replied_at,
-          family_user_id, resident_id, sender_id,
-          profiles!family_user_id(full_name),
-          residents!resident_id(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Messages fetch error:', error.message);
-        // Fallback without joins if FK names differ
-        const { data: fallback } = await supabase
-          .from('messages')
-          .select('id, message, status, created_at, reply_text, replied_at, family_user_id, resident_id')
-          .order('created_at', { ascending: false });
-        setMessages(fallback || []);
-        return;
+      if (msgsError) {
+        console.error('Messages fetch error:', msgsError.message);
+        throw msgsError;
       }
-      setMessages(data || []);
-    } catch (error: any) {
-      console.error('Error:', error.message);
+
+      // 2. Fetch profiles and residents separately (100% fail-safe against schema constraint mismatches)
+      const [profilesRes, residentsRes] = await Promise.all([
+        supabase.from('profiles').select('id, full_name'),
+        supabase.from('residents').select('id, full_name')
+      ]);
+
+      const profilesMap = new Map(profilesRes.data?.map(p => [p.id, p]) || []);
+      const residentsMap = new Map(residentsRes.data?.map(r => [r.id, r]) || []);
+
+      // 3. Join in JS memory
+      const joined = (msgs || []).map(msg => ({
+        ...msg,
+        profiles: profilesMap.get(msg.family_user_id) || null,
+        residents: residentsMap.get(msg.resident_id) || null
+      }));
+
+      setMessages(joined);
+    } catch (e: any) {
+      console.error('Error in fetchMessages:', e.message);
     } finally {
       setLoading(false);
     }

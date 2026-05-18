@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { User, Activity, MessageSquare, MessageCircle, Info, Clock, Sparkles, Zap, Award, X, Image as ImageIcon } from 'lucide-react';
+import { User, Activity, MessageSquare, MessageCircle, Info, Clock, Sparkles, Zap, Award, X, Image as ImageIcon, Tv } from 'lucide-react';
 import Link from 'next/link';
 
 const STAGE_LABELS: Record<string, string> = {
@@ -27,6 +27,60 @@ const UPDATE_TYPE_LABELS: Record<string, string> = {
   session_attendance: 'حضور جلسة',
   behavioral_progress: 'تطور سلوكي',
   family_alert: 'تنبيه للأسرة',
+  badge: 'وسام تقديري 🎖️',
+};
+
+const BADGE_DESIGNS: Record<string, { icon: string; bg: string; border: string; text: string; shadow: string }> = {
+  'وسام الالتزام الرياضي 🏋️‍♂️': {
+    icon: '🏋️‍♂️',
+    bg: 'linear-gradient(135deg, #FFE082 0%, #FFB300 100%)',
+    border: '#FFB300',
+    text: '#5D4037',
+    shadow: 'rgba(255, 179, 0, 0.25)'
+  },
+  'أسبوع بدون انتكاسة 💪': {
+    icon: '💪',
+    bg: 'linear-gradient(135deg, #A7F3D0 0%, #059669 100%)',
+    border: '#059669',
+    text: '#ffffff',
+    shadow: 'rgba(5, 150, 105, 0.25)'
+  },
+  'التفاعل الإيجابي في الجلسات 🗣️': {
+    icon: '🗣️',
+    bg: 'linear-gradient(135deg, #93C5FD 0%, #1D4ED8 100%)',
+    border: '#1D4ED8',
+    text: '#ffffff',
+    shadow: 'rgba(29, 78, 216, 0.25)'
+  },
+  'وسام الالتزام الروحي والصلوات 🕋': {
+    icon: '🕋',
+    bg: 'linear-gradient(135deg, #C7D2FE 0%, #6366F1 100%)',
+    border: '#6366F1',
+    text: '#ffffff',
+    shadow: 'rgba(99, 102, 241, 0.25)'
+  },
+  'وسام المبادرة الاجتماعية والتعاون 🤝': {
+    icon: '🤝',
+    bg: 'linear-gradient(135deg, #FBCFE8 0%, #DB2777 100%)',
+    border: '#DB2777',
+    text: '#ffffff',
+    shadow: 'rgba(219, 39, 119, 0.25)'
+  },
+  'وسام شعاع الأمل والتعافي 🌅': {
+    icon: '🌅',
+    bg: 'linear-gradient(135deg, #FDE68A 0%, #D97706 100%)',
+    border: '#D97706',
+    text: '#ffffff',
+    shadow: 'rgba(217, 119, 6, 0.25)'
+  }
+};
+
+const DEFAULT_BADGE_DESIGN = {
+  icon: '🎖️',
+  bg: 'linear-gradient(135deg, #E2E8F0 0%, #475569 100%)',
+  border: '#475569',
+  text: '#ffffff',
+  shadow: 'rgba(71, 85, 105, 0.25)'
 };
 
 
@@ -111,6 +165,7 @@ export default function FamilyDashboardPage() {
   const [statusError, setStatusError]             = useState<string | null>(null);
   const [bubbles, setBubbles]                     = useState<any[]>([]);
   const [showPushBanner, setShowPushBanner]       = useState(false);
+  const [liveStream, setLiveStream]               = useState<any>(null);
 
   useEffect(() => { 
     loadAll(); 
@@ -279,7 +334,7 @@ export default function FamilyDashboardPage() {
           .in('resident_id', residentIds)
           .eq('visible_to_family', true)
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(50);
 
         if (updatesError) {
           console.error("Updates Fetch Error:", updatesError.message);
@@ -288,9 +343,28 @@ export default function FamilyDashboardPage() {
         setRecentUpdates(updatesData || []);
         
         if (updatesData && updatesData.length > 0) {
-            setBubbles(updatesData.slice(0, 2).map(u => ({ id: u.id, text: `تحديث جديد: ${u.title || 'تقرير حالة'}` })));
+          const nonBadges = (updatesData || []).filter(u => u.update_type !== 'badge');
+          if (nonBadges.length > 0) {
+            setBubbles(nonBadges.slice(0, 2).map(u => ({ id: u.id, text: `تحديث جديد: ${u.title || 'تقرير حالة'}` })));
+          } else {
+            setBubbles(updatesData.slice(0, 2).map(u => ({ id: u.id, text: `وسام جديد: ${u.title || 'وسام تقديري'}` })));
+          }
         }
       }
+
+      // Fetch live stream status
+      try {
+        const { data: liveData } = await supabase
+          .from('live_streams')
+          .select('*')
+          .limit(1);
+        if (liveData && liveData.length > 0) {
+          setLiveStream(liveData[0]);
+        }
+      } catch (err) {
+        console.error("Error loading live stream status:", err);
+      }
+
     } catch (e: any) {
       console.error("Unexpected Dashboard Error:", e);
       setStatusError('حدث خطأ غير متوقع أثناء تحميل البيانات.');
@@ -351,6 +425,8 @@ export default function FamilyDashboardPage() {
   };
 
   const hasHighlyCommittedResident = residents.some(r => r.progress_score >= 80);
+  const badges = recentUpdates.filter(u => u.update_type === 'badge');
+  const regularUpdates = recentUpdates.filter(u => u.update_type !== 'badge');
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '6rem', background: 'var(--fp-surface)' }}>
@@ -468,6 +544,170 @@ export default function FamilyDashboardPage() {
                'مرحباً بك في بوابة أهالي دار شمس التعافي. نحن هنا لخدمتكم وطمأنتكم وتسهيل متابعة حالة ذويكم على مدار الساعة.'
              )}
           </p>
+        </div>
+
+        {/* ── Active Live Stream / Lecture Widget (Highly Premium & Pulsing) ── */}
+        {liveStream && (
+          <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ 
+            marginBottom: '2rem', 
+            background: liveStream.is_live 
+              ? 'linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(13, 40, 71, 0.95) 100%)' 
+              : 'linear-gradient(135deg, rgba(13, 40, 71, 0.95) 0%, rgba(27, 79, 114, 0.9) 100%)',
+            border: liveStream.is_live ? '1.5px solid rgba(220, 38, 38, 0.4)' : '1.5px solid rgba(255, 255, 255, 0.1)',
+            padding: '1.25rem 1.5rem',
+            borderRadius: '24px',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1.5rem',
+            flexWrap: 'wrap',
+            boxShadow: liveStream.is_live ? '0 15px 35px rgba(220, 38, 38, 0.15)' : '0 15px 35px rgba(13, 40, 71, 0.25)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '280px' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '50%', 
+                background: liveStream.is_live ? 'rgba(220, 38, 38, 0.2)' : 'rgba(255, 255, 255, 0.1)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: liveStream.is_live ? '2px solid #DC2626' : '1px solid rgba(255, 255, 255, 0.2)',
+                position: 'relative'
+              }}>
+                <Tv size={22} style={{ color: liveStream.is_live ? '#EF4444' : 'var(--fp-accent)' }} />
+                {liveStream.is_live && (
+                  <span style={{ 
+                    position: 'absolute', 
+                    top: '-2px', 
+                    right: '-2px', 
+                    width: '12px', 
+                    height: '12px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#EF4444', 
+                    border: '2px solid white',
+                    animation: 'fp-pulse 1.5s infinite'
+                  }} />
+                )}
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '0.98rem', fontWeight: '900', color: 'white', margin: 0 }}>
+                    {liveStream.is_live ? 'بث الاطمئنان اليومي (يبث الآن) 🔴' : 'بث الاطمئنان اليومي'}
+                  </h3>
+                  {liveStream.is_live && (
+                    <span style={{ 
+                      fontSize: '0.65rem', 
+                      backgroundColor: '#EF4444', 
+                      color: 'white', 
+                      padding: '0.15rem 0.5rem', 
+                      borderRadius: '8px', 
+                      fontWeight: '800',
+                      animation: 'fp-pulse 2s infinite'
+                    }}>
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.85)', marginTop: '0.25rem', fontWeight: '700', margin: '0.25rem 0 0 0' }}>
+                  {liveStream.title}
+                </p>
+                <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.1rem', fontWeight: '600', margin: '0.1rem 0 0 0' }}>
+                  الأخصائي المناوب: {liveStream.instructor_name || 'طاقم المركز العلاجي'}
+                </p>
+              </div>
+            </div>
+            <Link href="/family/live" style={{ textDecoration: 'none' }}>
+              <button className="btn" style={{ 
+                background: liveStream.is_live ? '#DC2626' : 'var(--fp-accent)', 
+                color: 'white', 
+                fontWeight: '900', 
+                padding: '0.65rem 1.5rem', 
+                borderRadius: '14px', 
+                border: 'none', 
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                boxShadow: liveStream.is_live ? '0 8px 20px rgba(220, 38, 38, 0.3)' : '0 8px 20px rgba(240, 165, 0, 0.3)',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontFamily: 'Cairo, sans-serif'
+              }}
+              onMouseOver={e => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              >
+                {liveStream.is_live ? 'دخول البث المباشر 📺' : 'استعراض البث 📺'}
+              </button>
+            </Link>
+          </div>
+        )}
+
+        {/* ── Badge Showcase / Milestones (Extremely Premium Glassmorphic Rack) ── */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-2" style={{ marginBottom: '2.5rem', padding: '1.75rem 2rem', overflow: 'hidden' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '900', color: 'var(--fp-primary)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+             <Award size={22} style={{ color: 'var(--fp-accent)' }} /> معرض الأوسمة والشارات التقديرية (Milestones & Badges)
+          </h2>
+          {badges.length === 0 ? (
+            <div style={{ background: 'rgba(255, 255, 255, 0.2)', border: '1px dashed rgba(13, 40, 71, 0.15)', borderRadius: '16px', padding: '2rem', textAlign: 'center' }}>
+              <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '700', lineHeight: '1.6' }}>
+                🎖️ الأوسمة والشارات التقديرية تمنحها إدارة المركز تقديراً للالتزام السلوكي والرياضي والمبادرات الإيجابية بالبرنامج العلاجي.
+                <br />
+                <span style={{ color: 'var(--fp-primary)', display: 'block', marginTop: '0.5rem', fontSize: '0.9rem' }}>بانتظار تحقيق الأهداف السلوكية القادمة بمساعدة الكادر المعالج والداعمين 💪</span>
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', padding: '0.5rem 0.25rem 1rem 0.25rem', scrollbarWidth: 'thin' }}>
+              {badges.map((b) => {
+                const design = BADGE_DESIGNS[b.title] || DEFAULT_BADGE_DESIGN;
+                return (
+                  <div key={b.id} className="badge-card-container" style={{ flexShrink: 0, width: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'white', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '20px', padding: '1.25rem', boxShadow: '0 10px 25px rgba(0,0,0,0.03)', transition: 'all 0.3s ease', cursor: 'pointer' }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                      e.currentTarget.style.boxShadow = `0 15px 30px ${design.shadow}`;
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.03)';
+                    }}>
+                    <div style={{ 
+                      width: '70px', 
+                      height: '70px', 
+                      borderRadius: '50%', 
+                      background: design.bg, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontSize: '2.2rem',
+                      boxShadow: `0 8px 20px ${design.shadow}`,
+                      marginBottom: '1rem',
+                      border: `3px solid ${design.border || '#fff'}`
+                    }}>
+                      {design.icon}
+                    </div>
+                    <h3 style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--fp-primary)', textAlign: 'center', marginBottom: '0.5rem', height: '36px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {b.title}
+                    </h3>
+                    <div style={{ width: '100%', height: '1px', backgroundColor: '#EDF2F7', marginBottom: '0.75rem' }} />
+                    <p style={{ fontSize: '0.75rem', color: '#4A5568', lineHeight: '1.5', textAlign: 'center', height: '60px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
+                      {b.content}
+                    </p>
+                    <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--fp-text-muted)', marginTop: '0.75rem', fontWeight: '600' }}>
+                      📅 {new Date(b.created_at).toLocaleDateString('ar-EG')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Milestone Achievement Card (Confetti Trigger Component) ── */}
@@ -609,12 +849,12 @@ export default function FamilyDashboardPage() {
                      <Clock size={16} style={{ color: 'var(--fp-accent)' }} /> النشاطات والتحديثات الأخيرة
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {recentUpdates.length === 0 ? (
+                    {regularUpdates.length === 0 ? (
                        <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--fp-text-muted)', fontSize: '0.85rem' }}>
                           لا توجد تحديثات علاجية مسجلة حالياً.
                        </div>
                     ) : (
-                       recentUpdates.slice(0, 3).map((u, i) => (
+                       regularUpdates.slice(0, 3).map((u, i) => (
                           <div key={u.id} style={{ 
                             paddingRight: '1rem', 
                             borderRight: '3px solid var(--fp-accent)', 

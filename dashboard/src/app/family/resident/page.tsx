@@ -30,6 +30,7 @@ const UPDATE_TYPE_LABELS: Record<string, string> = {
   general: 'حالة عامة', specialist_note: 'ملاحظة أخصائي',
   doctor_note: 'ملاحظة طبيب', session_attendance: 'حضور جلسة',
   behavioral_progress: 'تطور سلوكي', family_alert: 'تنبيه للأسرة',
+  badge: 'وسام تقديري 🎖️',
 };
 
 export default function FamilyResidentPage() {
@@ -232,23 +233,48 @@ export default function FamilyResidentPage() {
                       <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.9rem', fontWeight: '700' }}>لم تصدر أي تحديثات مرئية لهذا المقيم اليوم.</p>
                     </div>
                   ) : updates.map(u => (
-                    <div key={u.id} className="fp-glass-card" style={{ 
-                      marginBottom: '0.75rem', 
-                      borderRight: '5px solid var(--fp-accent)',
-                      transition: 'transform 0.2s',
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.65rem', backgroundColor: 'rgba(13,40,71,0.06)', color: 'var(--fp-primary)', padding: '0.25rem 0.6rem', borderRadius: '8px', fontWeight: '800', border: '1px solid rgba(13,40,71,0.1)' }}>
-                          {UPDATE_TYPE_LABELS[u.update_type] || u.update_type}
-                        </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--fp-text-muted)', fontWeight: '600' }}>{new Date(u.created_at).toLocaleDateString('ar-EG')}</span>
+                    u.update_type === 'badge' ? (
+                      <div key={u.id} className="fp-glass-card" style={{ 
+                        marginBottom: '0.75rem', 
+                        borderRight: '5px solid #FFB300',
+                        background: 'linear-gradient(135deg, rgba(255, 224, 130, 0.1) 0%, rgba(255, 179, 0, 0.05) 100%)',
+                        boxShadow: '0 8px 24px rgba(255, 179, 0, 0.1)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
+                      onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.65rem', backgroundColor: '#FFE082', color: '#5D4037', padding: '0.25rem 0.6rem', borderRadius: '8px', fontWeight: '800', border: '1px solid #FFB300' }}>
+                             وسام تقديري 🎖️
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--fp-text-muted)', fontWeight: '600' }}>{new Date(u.created_at).toLocaleDateString('ar-EG')}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '1.75rem' }}>🎖️</span>
+                          <p style={{ fontWeight: '900', color: '#B7791F', fontSize: '0.95rem' }}>{u.title}</p>
+                        </div>
+                        <p style={{ color: '#4a5568', fontSize: '0.85rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontWeight: '600' }}>{u.content}</p>
                       </div>
-                      {u.title && <p style={{ fontWeight: '800', color: 'var(--fp-primary)', marginBottom: '0.35rem', fontSize: '0.95rem' }}>{u.title}</p>}
-                      <p style={{ color: '#4a5568', fontSize: '0.85rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontWeight: '600' }}>{u.content}</p>
-                    </div>
+                    ) : (
+                      <div key={u.id} className="fp-glass-card" style={{ 
+                        marginBottom: '0.75rem', 
+                        borderRight: '5px solid var(--fp-accent)',
+                        transition: 'transform 0.2s',
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
+                      onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.65rem', backgroundColor: 'rgba(13,40,71,0.06)', color: 'var(--fp-primary)', padding: '0.25rem 0.6rem', borderRadius: '8px', fontWeight: '800', border: '1px solid rgba(13,40,71,0.1)' }}>
+                            {UPDATE_TYPE_LABELS[u.update_type] || u.update_type}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--fp-text-muted)', fontWeight: '600' }}>{new Date(u.created_at).toLocaleDateString('ar-EG')}</span>
+                        </div>
+                        {u.title && <p style={{ fontWeight: '800', color: 'var(--fp-primary)', marginBottom: '0.35rem', fontSize: '0.95rem' }}>{u.title}</p>}
+                        <p style={{ color: '#4a5568', fontSize: '0.85rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontWeight: '600' }}>{u.content}</p>
+                      </div>
+                    )
                   ))}
                 </div>
               </div>

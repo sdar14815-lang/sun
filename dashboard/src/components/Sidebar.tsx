@@ -19,6 +19,7 @@ import {
   Menu,
   Calendar,
   LogOut,
+  Tv,
 } from 'lucide-react';
 
 const menuItems = [
@@ -28,6 +29,7 @@ const menuItems = [
   { name: 'التقارير',        icon: ClipboardList,   path: '/reports' },
   { name: 'التحديثات اليومية', icon: Activity,      path: '/updates' },
   { name: 'الجدول اليومي',     icon: Calendar,      path: '/schedule' },
+  { name: 'البث المباشر 🔴',   icon: Tv,            path: '/live' },
   { name: 'الأخبار',         icon: Newspaper,       path: '/news' },
   { name: 'معرض الصور',      icon: ImageIcon,       path: '/gallery' },
   { name: 'الرسائل',         icon: MessageSquare,   path: '/messages' },

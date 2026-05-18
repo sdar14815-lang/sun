@@ -11,7 +11,17 @@ const UPDATE_TYPES: Record<string, string> = {
   session_attendance: 'حضور جلسة',
   behavioral_progress: 'تطور سلوكي',
   family_alert: 'تنبيه للأسرة',
+  badge: 'وسام تقديري 🎖️',
 };
+
+const BADGE_PRESETS = [
+  { value: 'وسام الالتزام الرياضي 🏋️‍♂️', label: 'وسام الالتزام الرياضي 🏋️‍♂️' },
+  { value: 'أسبوع بدون انتكاسة 💪', label: 'أسبوع بدون انتكاسة 💪' },
+  { value: 'التفاعل الإيجابي في الجلسات 🗣️', label: 'التفاعل الإيجابي في الجلسات 🗣️' },
+  { value: 'وسام الالتزام الروحي والصلوات 🕋', label: 'وسام الالتزام الروحي والصلوات 🕋' },
+  { value: 'وسام المبادرة الاجتماعية والتعاون 🤝', label: 'وسام المبادرة الاجتماعية والتعاون 🤝' },
+  { value: 'وسام شعاع الأمل والتعافي 🌅', label: 'وسام شعاع الأمل والتعافي 🌅' }
+];
 
 export default function UpdatesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,6 +33,12 @@ export default function UpdatesPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ resident_id: '', update_type: 'general', title: '', content: '', visible_to_family: true });
   const [saving, setSaving] = useState(false);
+
+  // WhatsApp Sharing State
+  const [sharingUpdate, setSharingUpdate] = useState<any>(null);
+  const [familyOptions, setFamilyOptions] = useState<any[]>([]);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [loadingFamilies, setLoadingFamilies] = useState(false);
 
   useEffect(() => { fetchResidents(); fetchUpdates(); }, []);
 
@@ -40,6 +56,75 @@ export default function UpdatesPage() {
       if (error) throw error;
       setUpdates(data || []);
     } finally { setLoading(false); }
+  }
+
+  async function handleShareWhatsApp(update: any) {
+    setSharingUpdate(update);
+    setLoadingFamilies(true);
+    setFamilyOptions([]);
+    try {
+      const { data, error } = await supabase
+        .from('family_links')
+        .select(`
+          relation,
+          profiles (
+            id,
+            full_name,
+            phone
+          )
+        `)
+        .eq('resident_id', update.resident_id)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      
+      const options = data?.map((fl: any) => ({
+        relation: fl.relation,
+        name: fl.profiles?.full_name,
+        phone: fl.profiles?.phone,
+      })).filter(o => o.phone) || [];
+
+      if (options.length === 0) {
+        alert('⚠️ لا توجد أرقام هواتف مسجلة ومربوطة لعائلة هذا المقيم حالياً في النظام.');
+        return;
+      }
+
+      if (options.length === 1) {
+        // Redirect directly
+        openWhatsAppRedirect(options[0], update);
+      } else {
+        // Show modal to choose
+        setFamilyOptions(options);
+        setShowShareModal(true);
+      }
+    } catch (e: any) {
+      alert('حدث خطأ أثناء جلب أرقام العائلة: ' + e.message);
+    } finally {
+      setLoadingFamilies(false);
+    }
+  }
+
+  function openWhatsAppRedirect(familyMember: any, update: any) {
+    const parentName = familyMember.name || 'ولي الأمر الكريم';
+    const residentName = update.residents?.full_name || 'المقيم';
+    const fileNumber = update.residents?.file_number || '';
+    const title = update.title || 'تقرير حالة';
+    const content = update.content;
+
+    const message = `السلام عليكم ورحمة الله وبركاته،\nأهلاً بك يا ${parentName}،\nنود إفادتكم بتحديث جديد بخصوص المقيم ${residentName} (ملف رقم: ${fileNumber}):\n\n📌 *${title}*\n\n${content}\n\nدمتم بصحة وعافية،\nدار شمس التعافي ☀️`;
+    
+    // Normalize phone number to standard international format (especially Saudi Arabia)
+    let cleanPhone = familyMember.phone.replace(/[\s\-\+\(\)]/g, '');
+    
+    if (cleanPhone.startsWith('05') && cleanPhone.length === 10) {
+      cleanPhone = '966' + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
+      cleanPhone = '966' + cleanPhone;
+    }
+
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+    setShowShareModal(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -116,6 +201,7 @@ export default function UpdatesPage() {
                   <th style={{ padding: '1rem' }}>العنوان والمحتوى</th>
                   <th style={{ padding: '1rem' }}>التاريخ</th>
                   <th style={{ padding: '1rem' }}>مرئي للأهل</th>
+                  <th style={{ padding: '1rem', width: '130px' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,13 +219,93 @@ export default function UpdatesPage() {
                         {u.visible_to_family ? '✓ نعم' : '✗ لا'}
                       </span>
                     </td>
+                    <td style={{ padding: '1rem' }}>
+                      <button 
+                        onClick={() => handleShareWhatsApp(u)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          background: '#25D366',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.45rem 0.75rem',
+                          fontWeight: '700',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 10px rgba(37, 211, 102, 0.15)',
+                          transition: 'all 0.15s ease',
+                          fontFamily: 'Cairo, sans-serif'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                        onMouseOut={e => e.currentTarget.style.transform = 'none'}
+                      >
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.455L0 24zm6.59-4.846c1.66.986 3.284 1.488 4.957 1.49 5.373 0 9.749-4.373 9.753-9.743.002-2.602-1.01-5.05-2.854-6.894-1.844-1.843-4.29-2.853-6.894-2.855-5.377 0-9.754 4.375-9.759 9.748-.002 1.761.47 3.427 1.365 4.908L1.925 22l4.722-1.246zm12.355-6.587c-.272-.136-1.61-.794-1.86-.885-.25-.09-.432-.136-.613.136-.18.273-.7 0-.88-.7-.18-.273-.362-.636-.61-.59-.25-.045-1.248-.46-2.378-1.467-.88-.785-1.474-1.755-1.647-2.05-.172-.293-.018-.452.12-.59.123-.123.272-.317.408-.475.136-.158.18-.27.272-.452.09-.18.045-.34-.022-.475-.067-.136-.613-1.477-.84-2.02-.22-.533-.48-.46-.613-.467-.12-.006-.27-.008-.423-.008-.152 0-.402.057-.613.284-.21.227-.803.784-.803 1.91 0 1.127.82 2.215.933 2.37.113.153 1.615 2.467 3.91 3.46.545.236.97.377 1.302.482.548.174 1.047.15 1.44.09.438-.066 1.61-.657 1.838-1.294.227-.636.227-1.18.158-1.293-.068-.113-.25-.204-.522-.34z"/>
+                        </svg>
+                        مشاركة
+                      </button>
+                    </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>لا توجد تحديثات</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>لا توجد تحديثات</td></tr>}
               </tbody>
             </table>
           )}
         </div>
+
+        {/* Multiple Family Options Modal */}
+        {showShareModal && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, direction: 'rtl', fontFamily: 'Cairo, sans-serif' }}>
+            <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '1.75rem', borderRadius: '16px', background: 'white', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--primary)' }}>اختر المستلم من العائلة</h3>
+                <button onClick={() => setShowShareModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#718096' }}>✕</button>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.6', fontWeight: '500' }}>
+                تم العثور على أكثر من حساب عائلة مرتبط بالمقيم. اختر الشخص الذي ترغب في إرسال التحديث له عبر واتساب:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '250px', overflowY: 'auto', paddingLeft: '0.25rem' }}>
+                {familyOptions.map((fo, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => openWhatsAppRedirect(fo, sharingUpdate)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      textAlign: 'right',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = '#f7fafc';
+                      e.currentTarget.style.borderColor = '#cbd5e0';
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = 'white';
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontWeight: '800', fontSize: '0.9rem', color: 'var(--primary)' }}>{fo.name}</p>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem', fontWeight: '600' }}>الصلة: {fo.relation || 'غير محدد'}</p>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: '#25D366', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      📲 إرسال
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {showModal && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -159,20 +325,38 @@ export default function UpdatesPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>نوع التحديث</label>
-                  <select value={form.update_type} onChange={e => setForm({ ...form, update_type: e.target.value })}
+                  <select value={form.update_type} onChange={e => setForm({ ...form, update_type: e.target.value, title: e.target.value === 'badge' ? '' : form.title })}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
                     {Object.entries(UPDATE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
+                {form.update_type === 'badge' ? (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>اختر الوسام التقديري *</label>
+                    <select required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', marginBottom: '0.5rem' }}>
+                      <option value="">اختر من الأوسمة المعتمدة...</option>
+                      {BADGE_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      <option value="custom">أخرى (كتابة وسام مخصص)...</option>
+                    </select>
+                    {(form.title === 'custom' || (!BADGE_PRESETS.some(p => p.value === form.title) && form.title !== '')) ? (
+                      <input required type="text" value={form.title === 'custom' ? '' : form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                        placeholder="اكتب اسم الوسام المخصص هنا..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }} />
+                    ) : null}
+                  </div>
+                ) : (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>العنوان *</label>
+                    <input required type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                      placeholder="عنوان مختصر" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }} />
+                  </div>
+                )}
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>العنوان</label>
-                  <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-                    placeholder="عنوان مختصر" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>المحتوى *</label>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>
+                    {form.update_type === 'badge' ? 'رسالة التهنئة والثناء (تظهر للأهل) *' : 'المحتوى *'}
+                  </label>
                   <textarea required value={form.content} onChange={e => setForm({ ...form, content: e.target.value })}
-                    placeholder="تفاصيل التحديث..." rows={4}
+                    placeholder={form.update_type === 'badge' ? 'مثال: نهنئ البطل على التزامه اليومي الممتاز بالتمارين الرياضية ومساعدة زملائه في صالة اللياقة!' : 'تفاصيل التحديث...'} rows={4}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
