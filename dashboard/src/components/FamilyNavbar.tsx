@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import FamilyChatbot from './FamilyChatbot';
+
 
 // ── Desktop items (Top Tabs Bar) ──
 const desktopItems = [
@@ -389,9 +389,6 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           .family-nav-desktop    { display: none !important; }
         }
       `}</style>
-
-      {/* ── Global Cloud AI Chatbot Helper ── */}
-      <FamilyChatbot />
     </>
   );
 }

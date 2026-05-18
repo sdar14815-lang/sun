@@ -34,13 +34,6 @@ export async function middleware(req: NextRequest) {
       return res;
     }
     if (isFamilyLoginRoute) return NextResponse.redirect(new URL('/family/dashboard', req.url));
-
-    // Role check for family portal (optional but recommended)
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-    if (profile && profile.role !== 'family') {
-        // If an admin tries to enter family portal, it's okay, but usually we redirect to dashboard
-        return res; 
-    }
     return res;
   }
 
@@ -56,14 +49,6 @@ export async function middleware(req: NextRequest) {
   // If logged in and trying to access login page, redirect to dashboard
   if (isAdminLoginRoute) {
     return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  // Role check: Only admin/staff can access dashboard
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-  
-  if (profile && profile.role === 'family') {
-    // Family members should not see the admin dashboard
-    return NextResponse.redirect(new URL('/family/dashboard', req.url));
   }
 
   return res;

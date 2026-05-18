@@ -1,5 +1,6 @@
 import '../styles/globals.css';
 import type { Metadata, Viewport } from 'next';
+import OneSignalInit from '@/components/OneSignalInit';
 
 export const metadata: Metadata = {
   title: 'لوحة تحكم دار شمس التعافي',
@@ -28,8 +29,10 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body>
+        <OneSignalInit />
         {children}
       </body>
     </html>
   );
 }
+

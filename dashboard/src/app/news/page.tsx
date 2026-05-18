@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar, { HamburgerButton } from '@/components/Sidebar';
-import { Plus, Edit, Trash2, CheckCircle, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, Clock, ArrowUp, ArrowDown, ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 

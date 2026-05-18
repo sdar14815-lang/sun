@@ -20,6 +20,16 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string; 
   important_note:       { label: 'ملاحظة مهمة',   color: '#dc2626', bg: '#fff5f5', border: '#fed7d7' },
 };
 
+const UPDATE_TYPE_LABELS: Record<string, string> = {
+  general: 'حالة عامة',
+  specialist_note: 'ملاحظة أخصائي',
+  doctor_note: 'ملاحظة طبيب',
+  session_attendance: 'حضور جلسة',
+  behavioral_progress: 'تطور سلوكي',
+  family_alert: 'تنبيه للأسرة',
+};
+
+
 function CircularProgress({ percentage, color }: { percentage: number; color: string }) {
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
@@ -99,10 +109,47 @@ export default function FamilyDashboardPage() {
   const [recentUpdates, setRecentUpdates]         = useState<any[]>([]);
   const [loading, setLoading]                     = useState(true);
   const [bubbles, setBubbles]                     = useState<any[]>([]);
+  const [showPushBanner, setShowPushBanner]       = useState(false);
 
   useEffect(() => { 
     loadAll(); 
+    checkNotificationSubscription();
   }, []);
+
+  const checkNotificationSubscription = () => {
+    if (typeof window !== 'undefined') {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async (OneSignal: any) => {
+        try {
+          const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+          const permission = await OneSignal.Notifications.permission;
+          
+          if (!isOptedIn && permission !== 'denied') {
+            setShowPushBanner(true);
+          }
+        } catch (e) {
+          console.error("Error checking notification status:", e);
+        }
+      });
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (typeof window !== 'undefined') {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async (OneSignal: any) => {
+        try {
+          await OneSignal.Notifications.requestPermission();
+          const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+          if (isOptedIn) {
+            setShowPushBanner(false);
+          }
+        } catch (e) {
+          console.error("Error requesting notification permission:", e);
+        }
+      });
+    }
+  };
 
   async function loadAll() {
     try {
@@ -131,7 +178,7 @@ export default function FamilyDashboardPage() {
         const [updatesRes] = await Promise.all([
           supabase
             .from('resident_updates')
-            .select('id, title, content, update_type, created_at, resident_id')
+            .select('id, title, content, update_type, created_at, resident_id, residents(full_name)')
             .in('resident_id', residentIds)
             .eq('visible_to_family', true)
             .order('created_at', { ascending: false })
@@ -176,6 +223,76 @@ export default function FamilyDashboardPage() {
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '6rem', background: 'var(--fp-surface)' }}>
       <FamilyNavbar userName={profile?.full_name} />
+
+      {/* Premium Notification Permission Prompt Banner */}
+      {showPushBanner && (
+        <div style={{ maxWidth: '1100px', margin: '1rem auto 0 auto', padding: '0 clamp(0.875rem, 4vw, 2rem)', animation: 'fadeInDown 0.5s ease-out' }}>
+          <div className="fp-glass-card" style={{ 
+            background: 'linear-gradient(135deg, rgba(13, 40, 71, 0.95), rgba(46, 134, 193, 0.9))',
+            border: '1.5px solid rgba(255, 255, 255, 0.1)',
+            padding: '1.25rem 1.5rem',
+            borderRadius: '24px',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1.5rem',
+            flexWrap: 'wrap',
+            boxShadow: '0 20px 40px rgba(13, 40, 71, 0.25)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '280px' }}>
+              <div style={{ 
+                width: '46px', 
+                height: '46px', 
+                borderRadius: '50%', 
+                background: 'rgba(255, 255, 255, 0.15)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                flexShrink: 0
+              }}>
+                <Zap size={22} style={{ color: 'var(--fp-accent)' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '900', color: 'white', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                   تفعيل التنبيهات الصوتية المباشرة 🔔
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.8)', marginTop: '0.2rem', lineHeight: '1.4', fontWeight: '500' }}>
+                   احصل على تحديثات حالة ابنك، والصور الجديدة، والتقارير الأسبوعية بصوت تنبيه فوري فور صدورها حتى والموقع مغلق!
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <button onClick={handleSubscribe} className="btn" style={{ 
+                background: 'var(--fp-accent)', 
+                color: 'var(--fp-primary)', 
+                fontWeight: '800', 
+                padding: '0.6rem 1.25rem', 
+                borderRadius: '14px', 
+                border: 'none', 
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                boxShadow: '0 8px 20px rgba(240, 165, 0, 0.3)',
+                transition: 'transform 0.2s'
+              }}>
+                تفعيل الآن
+              </button>
+              <button onClick={() => setShowPushBanner(false)} style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: 'rgba(255,255,255,0.5)', 
+                cursor: 'pointer', 
+                padding: '0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: '600'
+              }}>
+                لاحقاً
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confetti Explosion for Outstanding Commitment! */}
       {hasHighlyCommittedResident && <CelebrationConfetti />}
@@ -359,13 +476,51 @@ export default function FamilyDashboardPage() {
                   <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--fp-primary)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                      <Clock size={16} style={{ color: 'var(--fp-accent)' }} /> النشاطات والتحديثات الأخيرة
                   </h3>
-                  {recentUpdates.slice(0, 3).map((u, i) => (
-                     <div key={i} style={{ paddingBottom: '1rem', borderRight: '2px solid var(--fp-border)', paddingRight: '1rem', position: 'relative', marginBottom: '0.75rem' }}>
-                        <div style={{ position: 'absolute', right: '-6px', top: '0.25rem', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--fp-accent)', border: '2px solid white' }} />
-                        <p style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--fp-primary)' }}>{u.title || 'تحديث دوري'}</p>
-                        <p style={{ fontSize: '0.7rem', color: 'var(--fp-text-muted)', marginTop: '0.15rem' }}>{new Date(u.created_at).toLocaleDateString('ar-EG')}</p>
-                     </div>
-                  ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {recentUpdates.length === 0 ? (
+                       <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--fp-text-muted)', fontSize: '0.85rem' }}>
+                          لا توجد تحديثات علاجية مسجلة حالياً.
+                       </div>
+                    ) : (
+                       recentUpdates.slice(0, 3).map((u, i) => (
+                          <div key={u.id} style={{ 
+                            paddingRight: '1rem', 
+                            borderRight: '3px solid var(--fp-accent)', 
+                            position: 'relative', 
+                            background: 'rgba(255, 255, 255, 0.25)', 
+                            padding: '1rem', 
+                            borderRadius: '16px',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.01)'
+                          }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.65rem', backgroundColor: 'var(--fp-primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: '800' }}>
+                                   {UPDATE_TYPE_LABELS[u.update_type] || u.update_type}
+                                </span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--fp-text-muted)', fontWeight: '600' }}>
+                                   {new Date(u.created_at).toLocaleDateString('ar-EG')}
+                                </span>
+                             </div>
+                             
+                             {/* Resident Name */}
+                             {u.residents?.full_name && (
+                                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--fp-text-muted)', marginBottom: '0.35rem' }}>
+                                   المقيم: <span style={{ color: 'var(--fp-primary)', fontWeight: '900' }}>{u.residents.full_name}</span>
+                                </p>
+                             )}
+
+                             {u.title && (
+                                <p style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--fp-primary)', marginBottom: '0.35rem' }}>
+                                   {u.title}
+                                </p>
+                             )}
+                             <p style={{ fontSize: '0.8rem', color: '#4a5568', lineHeight: '1.6', whiteSpace: 'pre-wrap', fontWeight: '600' }}>
+                                {u.content}
+                             </p>
+                          </div>
+                       ))
+                    )}
+                  </div>
               </div>
            </div>
         </div>

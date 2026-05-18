@@ -32,6 +32,22 @@ export default function AddNewsPage() {
         }]);
 
       if (saveError) throw saveError;
+
+      // Send Push Notification if published
+      if (formData.published) {
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `خبر جديد: ${formData.title}`,
+            body: formData.body.length > 80 ? `${formData.body.substring(0, 80)}...` : formData.body,
+            url: `${window.location.origin}/family/dashboard`
+          }),
+        }).catch(err => console.error("Failed to send notification:", err));
+      }
+
       router.push('/news');
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء حفظ الخبر');
