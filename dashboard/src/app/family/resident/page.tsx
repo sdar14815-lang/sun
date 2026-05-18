@@ -55,6 +55,7 @@ export default function FamilyResidentPage() {
         .single();
         
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
+      if (prof.status !== 'active') { router.push('/family/dashboard'); return; }
       setProfile(prof);
 
       const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];

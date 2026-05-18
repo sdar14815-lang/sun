@@ -21,7 +21,7 @@ export default function MessagesPage() {
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          id, body, status, created_at, reply_text, replied_at,
+          id, message, status, created_at, reply_text, replied_at,
           family_user_id, resident_id, sender_id,
           profiles!messages_family_user_id_fkey(full_name),
           residents!messages_resident_id_fkey(full_name)
@@ -33,7 +33,7 @@ export default function MessagesPage() {
         // Fallback without joins if FK names differ
         const { data: fallback } = await supabase
           .from('messages')
-          .select('id, body, status, created_at, reply_text, replied_at, family_user_id, resident_id')
+          .select('id, message, status, created_at, reply_text, replied_at, family_user_id, resident_id')
           .order('created_at', { ascending: false });
         setMessages(fallback || []);
         return;
@@ -83,7 +83,7 @@ export default function MessagesPage() {
   }
 
   const filteredMessages = messages.filter(m =>
-    m.body?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (m.message || m.body)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -141,7 +141,7 @@ export default function MessagesPage() {
                       <td style={{ padding: '1rem', fontWeight: '600' }}>{msg.profiles?.full_name || '—'}</td>
                       <td style={{ padding: '1rem' }}>{msg.residents?.full_name || '—'}</td>
                       <td style={{ padding: '1rem', maxWidth: '220px' }}>
-                        <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.body}</p>
+                        <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.message || msg.body}</p>
                       </td>
                       <td style={{ padding: '1rem', maxWidth: '160px' }}>
                         {msg.reply_text ? (
@@ -188,7 +188,7 @@ export default function MessagesPage() {
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                   من: <strong>{replyModal.profiles?.full_name || 'أحد الأهالي'}</strong>
                 </p>
-                <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>{replyModal.body}</p>
+                <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>{replyModal.message || replyModal.body}</p>
               </div>
               <form onSubmit={handleReply}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>نص الرد *</label>

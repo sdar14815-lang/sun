@@ -38,9 +38,13 @@ export default function FamilyLoginPage() {
         throw new Error('خطأ في قراءة بيانات الحساب: ' + profileError.message);
       }
       if (!profile) { router.replace('/auth/profile-error'); return; }
-      if (profile.status === 'disabled') {
+      if (profile.status === 'disabled' || profile.status === 'suspended') {
         await supabase.auth.signOut();
-        throw new Error('هذا الحساب موقوف. يرجى التواصل مع الإدارة.');
+        throw new Error('تم إيقاف الحساب مؤقتًا، برجاء التواصل مع الإدارة.');
+      }
+      if (profile.status === 'pending') {
+        await supabase.auth.signOut();
+        throw new Error('الحساب غير مفعل بعد، برجاء التواصل مع الإدارة.');
       }
       if (profile.role !== 'family') {
         await supabase.auth.signOut();

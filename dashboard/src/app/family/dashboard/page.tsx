@@ -93,21 +93,13 @@ function CelebrationConfetti() {
           0% { transform: translateY(-20px) rotate(0deg); }
           100% { transform: translateY(105vh) rotate(720deg); }
         }
-        @keyframes fp-pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.06); }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-export default function FamilyDashboardPage() {
+        @keyfexport default function FamilyDashboardPage() {
   const router = useRouter();
   const [profile, setProfile]                     = useState<any>(null);
   const [residents, setResidents]                 = useState<any[]>([]);
   const [recentUpdates, setRecentUpdates]         = useState<any[]>([]);
   const [loading, setLoading]                     = useState(true);
+  const [statusError, setStatusError]             = useState<string | null>(null);
   const [bubbles, setBubbles]                     = useState<any[]>([]);
   const [showPushBanner, setShowPushBanner]       = useState(false);
 
@@ -179,10 +171,20 @@ export default function FamilyDashboardPage() {
   async function loadAll() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/family/login'); return; }
+      
+      console.log("--- FAMILY PORTAL DEBUG ---");
+      console.log("Session Exists:", user ? "YES" : "NO");
+      console.log("Current User ID:", user?.id || "None");
+      console.log("Requested Table: profiles (with family_links relation)");
+
+      if (!user) { 
+        setStatusError('جلسة الدخول انتهت، برجاء تسجيل الدخول مرة أخرى');
+        setLoading(false);
+        return; 
+      }
 
       // Combined Query: Fetch profile details, active family links, and resident records in a single request
-      const { data: prof } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select(`
           *,
@@ -203,17 +205,66 @@ export default function FamilyDashboardPage() {
         .eq('id', user.id)
         .single();
 
-      if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
+      if (profError) {
+        console.error("Supabase Error Code:", profError.code);
+        console.error("Supabase Error Message:", profError.message);
+        console.log("---------------------------");
+
+        if (profError.code === '42501' || profError.message?.toLowerCase().includes('permission') || profError.message?.toLowerCase().includes('policy')) {
+          setStatusError('ليس لديك صلاحية لعرض هذه الصفحة');
+        } else {
+          setStatusError('جلسة الدخول انتهت، برجاء تسجيل الدخول مرة أخرى');
+        }
+        setLoading(false);
+        return;
+      }
+
+      console.log("User Profile Loaded:", prof ? "YES" : "NO");
+      console.log("Current User Role:", prof?.role || "None");
+      console.log("Current User Status:", prof?.status || "None");
+      console.log("---------------------------");
+
+      if (!prof) {
+        setStatusError('لا توجد بيانات مرتبطة بهذا الحساب حالياً');
+        setLoading(false);
+        return;
+      }
+
+      if (prof.role !== 'family') {
+        setStatusError('ليس لديك صلاحية لعرض هذه الصفحة');
+        setLoading(false);
+        return;
+      }
+
+      // Verify account status
+      if (prof.status === 'suspended' || prof.status === 'disabled') {
+        setStatusError('تم إيقاف الحساب مؤقتًا، برجاء التواصل مع الإدارة.');
+        setLoading(false);
+        return;
+      }
+
+      if (prof.status === 'pending') {
+        setStatusError('الحساب غير مفعل بعد، برجاء التواصل مع الإدارة.');
+        setLoading(false);
+        return;
+      }
+
       setProfile(prof);
 
       const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
       const linked = activeLinks.map((l: any) => ({ ...l.residents, relation: l.relation })).filter(Boolean) || [];
       setResidents(linked);
 
+      if (linked.length === 0) {
+        setStatusError('لم يتم ربط حسابك بملف مقيم بعد، برجاء التواصل مع الإدارة.');
+        setLoading(false);
+        return;
+      }
+
       const residentIds = activeLinks.map((l: any) => l.resident_id).filter(Boolean) || [];
 
       if (residentIds.length > 0) {
-        const { data: updatesData } = await supabase
+        const { data: updatesData, error: updatesError } = await supabase
           .from('resident_updates')
           .select('id, title, content, update_type, created_at, resident_id, residents(full_name)')
           .in('resident_id', residentIds)
@@ -221,14 +272,19 @@ export default function FamilyDashboardPage() {
           .order('created_at', { ascending: false })
           .limit(5);
 
+        if (updatesError) {
+          console.error("Updates Fetch Error:", updatesError.message);
+        }
+
         setRecentUpdates(updatesData || []);
         
         if (updatesData && updatesData.length > 0) {
             setBubbles(updatesData.slice(0, 2).map(u => ({ id: u.id, text: `تحديث جديد: ${u.title || 'تقرير حالة'}` })));
         }
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("Unexpected Dashboard Error:", e);
+      setStatusError('حدث خطأ غير متوقع أثناء تحميل البيانات.');
     } finally {
       setLoading(false);
     }
@@ -241,6 +297,37 @@ export default function FamilyDashboardPage() {
           <div className="fp-skeleton" style={{ height: '60px', borderRadius: '30px', marginBottom: '2rem' }} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
             {[1, 2, 3, 4].map(i => <div key={i} className="fp-skeleton" style={{ height: '100px', borderRadius: '14px' }} />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (statusError) {
+    return (
+      <div className="family-portal" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: 'linear-gradient(160deg, #0D2137 0%, #1B4F72 100%)', direction: 'rtl' }}>
+        <div className="fp-glass-card fp-animate" style={{ maxWidth: '480px', width: '100%', padding: '2.5rem', textAlign: 'center', borderRadius: '24px', border: '1.5px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)' }}>
+          <div style={{ width: '80px', height: '80px', background: 'rgba(240, 165, 0, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '2px solid #F0A500', boxShadow: '0 8px 24px rgba(240,165,0,0.2)' }}>
+            <span style={{ fontSize: '2rem' }}>⚠️</span>
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '900', color: 'white', marginBottom: '1rem', fontFamily: 'Cairo, sans-serif' }}>
+            تنبيه بوابة الأهالي
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.98rem', fontWeight: '700', lineHeight: '1.7', marginBottom: '2rem', fontFamily: 'Cairo, sans-serif' }}>
+            {statusError}
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+            <button 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.replace('/family/login');
+              }}
+              style={{ width: '100%', padding: '0.9rem', background: 'linear-gradient(135deg, #F0A500, #d97706)', color: '#0D2847', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', boxShadow: '0 8px 20px rgba(240, 165, 0, 0.3)', transition: 'transform 0.2s' }}
+              onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'none'}
+            >
+              الرجوع لصفحة تسجيل الدخول
+            </button>
           </div>
         </div>
       </div>

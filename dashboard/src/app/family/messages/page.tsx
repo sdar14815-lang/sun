@@ -48,6 +48,7 @@ export default function FamilyMessagesPage() {
         .single();
         
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
+      if (prof.status !== 'active') { router.push('/family/dashboard'); return; }
       setProfile(prof);
 
       const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
@@ -70,7 +71,7 @@ export default function FamilyMessagesPage() {
       const { error } = await supabase.from('messages').insert({
         family_user_id: user?.id,
         resident_id: form.resident_id || null,
-        body: form.message,
+        message: form.message,
         status: 'open',
         sender_id: user?.id,
       });
