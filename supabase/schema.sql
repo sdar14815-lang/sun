@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS weekly_reports (
   progress_score INT CHECK (progress_score >= 0 AND progress_score <= 100),
   visible_to_family BOOLEAN DEFAULT FALSE,
   pdf_url TEXT,
+  family_read_at TIMESTAMPTZ,
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

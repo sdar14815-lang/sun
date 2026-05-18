@@ -136,18 +136,43 @@ export default function FamilyDashboardPage() {
 
   const handleSubscribe = async () => {
     if (typeof window !== 'undefined') {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async (OneSignal: any) => {
+      // 1. Check if browser supports notifications
+      if (!('Notification' in window)) {
+        alert('⚠️ متصفحك الحالي أو التطبيق لا يدعم التنبيهات المباشرة. يرجى فتح الموقع باستخدام متصفح رسمي (مثل Chrome, Safari).');
+        return;
+      }
+
+      // 2. Check if browser notification permission is already denied
+      if (Notification.permission === 'denied') {
+        alert('⚠️ تنبيهات المتصفح محظورة حالياً. يرجى الضغط على أيقونة الإعدادات/القفل بجانب شريط عنوان الموقع وتفعيل خيار الإشعارات (Allow) لتلقي التحديثات.');
+        return;
+      }
+
+      const OneSignal = (window as any).OneSignal;
+      
+      if (OneSignal && OneSignal.Notifications) {
         try {
+          // Call directly synchronously inside click event to preserve browser User Gesture security!
           await OneSignal.Notifications.requestPermission();
+          
           const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
           if (isOptedIn) {
             setShowPushBanner(false);
+            alert('🔔 ممتاز! تم تفعيل التنبيهات الصوتية والمباشرة بنجاح لمتابعة حالة ذويكم فوراً.');
+          } else {
+            const afterPermission = await OneSignal.Notifications.permission;
+            if (afterPermission === 'denied') {
+              alert('⚠️ لتلقي التنبيهات الصوتية، يرجى السماح بالإشعارات عندما يطلبها المتصفح.');
+            }
           }
         } catch (e) {
-          console.error("Error requesting notification permission:", e);
+          console.error("Error requesting permission directly:", e);
+          alert('حدث خطأ أثناء تفعيل التنبيهات. يرجى المحاولة مرة أخرى.');
         }
-      });
+      } else {
+        // Script is loading or blocked by Ad-Blocker
+        alert('⚠️ مكتبة التنبيهات لم تكتمل بعد (ربما بسبب برنامج مانع الإعلانات Ad-Blocker أو بطء في اتصال الشبكة). يرجى إيقاف مانع الإعلانات في متصفحك وتحديث الصفحة ثم المحاولة مجدداً.');
+      }
     }
   };
 
@@ -156,39 +181,50 @@ export default function FamilyDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/family/login'); return; }
 
-      const [{ data: prof }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single()
-      ]);
+      // Combined Query: Fetch profile details, active family links, and resident records in a single request
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          family_links(
+            resident_id,
+            relation,
+            is_active,
+            residents(
+              id,
+              full_name,
+              file_number,
+              current_stage,
+              current_status,
+              progress_score
+            )
+          )
+        `)
+        .eq('id', user.id)
+        .single();
 
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
       setProfile(prof);
 
-      const { data: links } = await supabase
-        .from('family_links')
-        .select('resident_id, relation, residents(id, full_name, file_number, current_stage, current_status, progress_score)')
-        .eq('family_user_id', user.id)
-        .eq('is_active', true);
-
-      const linked = links?.map((l: any) => ({ ...l.residents, relation: l.relation })).filter(Boolean) || [];
+      const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
+      const linked = activeLinks.map((l: any) => ({ ...l.residents, relation: l.relation })).filter(Boolean) || [];
       setResidents(linked);
 
-      const residentIds = links?.map((l: any) => l.resident_id).filter(Boolean) || [];
+      const residentIds = activeLinks.map((l: any) => l.resident_id).filter(Boolean) || [];
 
       if (residentIds.length > 0) {
-        const [updatesRes] = await Promise.all([
-          supabase
-            .from('resident_updates')
-            .select('id, title, content, update_type, created_at, resident_id, residents(full_name)')
-            .in('resident_id', residentIds)
-            .eq('visible_to_family', true)
-            .order('created_at', { ascending: false })
-            .limit(5)
-        ]);
+        const { data: updatesData } = await supabase
+          .from('resident_updates')
+          .select('id, title, content, update_type, created_at, resident_id, residents(full_name)')
+          .in('resident_id', residentIds)
+          .eq('visible_to_family', true)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-        setRecentUpdates(updatesRes.data || []);
+        setRecentUpdates(updatesData || []);
         
-        if (updatesRes.data && updatesRes.data.length > 0) {
-            setBubbles(updatesRes.data.slice(0, 2).map(u => ({ id: u.id, text: `تحديث جديد: ${u.title || 'تقرير حالة'}` })));
+        if (updatesData && updatesData.length > 0) {
+            setBubbles(updatesData.slice(0, 2).map(u => ({ id: u.id, text: `تحديث جديد: ${u.title || 'تقرير حالة'}` })));
         }
       }
     } catch (e) {

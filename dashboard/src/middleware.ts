@@ -15,43 +15,68 @@ export async function middleware(req: NextRequest) {
   res.headers.set('X-Content-Type-Options', 'nosniff');
   res.headers.set('Referrer-Policy', 'origin-when-cross-origin');
 
-  // 2. Session Check
+  // 2. Skip middleware for API routes, Next.js internals, and static public assets
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/auth') ||
+    pathname === '/favicon.ico' ||
+    pathname.includes('.') // e.g. .png, .jpg, .svg, .js, .css
+  ) {
+    return res;
+  }
+
+  // 3. Session Check
   const { data: { session } } = await supabase.auth.getSession();
 
   const isFamilyRoute = pathname.startsWith('/family');
   const isFamilyLoginRoute = pathname === '/family/login';
   const isAdminLoginRoute = pathname === '/login';
-  
-  // Public assets and API
-  if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname === '/favicon.ico' || pathname.startsWith('/auth')) {
-    return res;
-  }
 
-  // --- Logic for Family Portal ---
-  if (isFamilyRoute) {
-    if (!session) {
-      if (!isFamilyLoginRoute) return NextResponse.redirect(new URL('/family/login', req.url));
-      return res;
-    }
-    if (isFamilyLoginRoute) return NextResponse.redirect(new URL('/family/dashboard', req.url));
-    return res;
-  }
+  // 4. Role Detection (Lightweight domain-based check with metadata fallback)
+  const userEmail = session?.user?.email || '';
+  const userRole = session?.user?.user_metadata?.role || (userEmail.endsWith('@family.shams.com') ? 'family' : 'admin');
 
-  // --- Logic for Admin Dashboard ---
+  // 5. Routing and Guard Logic
   if (!session) {
-    // If not logged in and not on login page, redirect to login
-    if (!isAdminLoginRoute) {
-      return NextResponse.redirect(new URL('/family/login', req.url));
+    // --- User is NOT logged in ---
+    if (isFamilyRoute) {
+      if (!isFamilyLoginRoute) {
+        return NextResponse.redirect(new URL('/family/login', req.url));
+      }
+    } else {
+      if (!isAdminLoginRoute) {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+    }
+    return res;
+  } else {
+    // --- User IS logged in ---
+    if (userRole === 'family') {
+      // Family User trying to access Admin Portal
+      if (!isFamilyRoute) {
+        return NextResponse.redirect(new URL('/family/dashboard', req.url));
+      }
+      // Family User trying to access Family Login
+      if (isFamilyLoginRoute) {
+        return NextResponse.redirect(new URL('/family/dashboard', req.url));
+      }
+      // Redirect exact /family or /family/ to /family/dashboard
+      if (pathname === '/family' || pathname === '/family/') {
+        return NextResponse.redirect(new URL('/family/dashboard', req.url));
+      }
+    } else {
+      // Admin/Staff User trying to access Family Portal
+      if (isFamilyRoute) {
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+      // Admin/Staff User trying to access Admin Login
+      if (isAdminLoginRoute) {
+        return NextResponse.redirect(new URL('/', req.url));
+      }
     }
     return res;
   }
-
-  // If logged in and trying to access login page, redirect to dashboard
-  if (isAdminLoginRoute) {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  return res;
 }
 
 export const config = {

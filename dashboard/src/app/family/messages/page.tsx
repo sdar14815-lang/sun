@@ -15,19 +15,43 @@ export default function FamilyMessagesPage() {
   const [form, setForm] = useState({ resident_id: '', message: '' });
   const [sending, setSending] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { 
+    loadData(); 
+
+    // Subscribe to real-time message updates
+    const channel = supabase
+      .channel('realtime-family-messages')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages' },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function loadData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/family/login'); return; }
       
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      // Combined Query: Fetch profile details, active family links, and linked residents in a single request
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*, family_links(resident_id, is_active, residents(id, full_name))')
+        .eq('id', user.id)
+        .single();
+        
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
       setProfile(prof);
 
-      const { data: links } = await supabase.from('family_links').select('resident_id, residents(id, full_name)').eq('family_user_id', user.id).eq('is_active', true);
-      setResidents(links?.map(l => l.residents).filter(Boolean) || []);
+      const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
+      setResidents(activeLinks.map((l: any) => l.residents).filter(Boolean) || []);
 
       const { data: msgs } = await supabase.from('messages').select('*').eq('family_user_id', user.id).order('created_at', { ascending: false });
       setMessages(msgs || []);

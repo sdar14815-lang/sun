@@ -48,7 +48,7 @@ class SupabaseService {
     final response = await client
         .from('news')
         .select('*')
-        .eq('is_published', true)
+        .eq('published', true)
         .order('created_at', ascending: false);
     
     return List<Map<String, dynamic>>.from(response);

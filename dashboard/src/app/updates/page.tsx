@@ -49,6 +49,22 @@ export default function UpdatesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from('resident_updates').insert({ ...form, created_by: user?.id });
       if (error) throw error;
+
+      // Send Push Notification if visible to family
+      if (form.visible_to_family) {
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `تحديث حالة جديد: ${form.title || 'تقرير حالة مقيم'}`,
+            body: form.content.length > 80 ? `${form.content.substring(0, 80)}...` : form.content,
+            url: `${window.location.origin}/family/dashboard`
+          }),
+        }).catch(err => console.error("Failed to send notification:", err));
+      }
+
       setShowModal(false);
       setForm({ resident_id: '', update_type: 'general', title: '', content: '', visible_to_family: true });
       fetchUpdates();

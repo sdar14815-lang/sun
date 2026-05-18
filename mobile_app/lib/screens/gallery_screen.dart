@@ -22,7 +22,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   Future<void> _fetchGallery() async {
     try {
-      final data = await _supabase.from('gallery').select().order('created_at', ascending: false);
+      final data = await _supabase.from('gallery').select().order('created_at', ascending: false).limit(24);
       if (mounted) {
         setState(() {
           _images = data;

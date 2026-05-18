@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +18,7 @@ import {
   X,
   Menu,
   Calendar,
+  LogOut,
 } from 'lucide-react';
 
 const menuItems = [
@@ -42,7 +44,15 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+      await supabase.auth.signOut();
+      router.push('/login');
+    }
+  };
 
   // Close sidebar when navigating on mobile
   useEffect(() => {
@@ -164,7 +174,38 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div style={{ marginTop: 'auto', padding: '1rem 0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ marginTop: 'auto', padding: '1rem 0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: '#f87171',
+              cursor: 'pointer',
+              fontWeight: '700',
+              fontSize: '0.85rem',
+              width: '100%',
+              transition: 'all 0.2s',
+              fontFamily: 'Cairo, sans-serif'
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+              e.currentTarget.style.color = '#ef4444';
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
+              e.currentTarget.style.color = '#f87171';
+            }}
+          >
+            <LogOut size={16} />
+            تسجيل الخروج
+          </button>
           <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem', textAlign: 'center' }}>
             النسخة المفتوحة
           </div>

@@ -18,18 +18,18 @@ export default function FamilyReportsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/family/login'); return; }
       
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      // Combined Query: Fetch profile details and family links in a single request
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*, family_links(resident_id, is_active)')
+        .eq('id', user.id)
+        .single();
+        
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
       setProfile(prof);
 
-      // 1. Get linked resident IDs for this family member
-      const { data: links } = await supabase
-        .from('family_links')
-        .select('resident_id')
-        .eq('family_user_id', user.id)
-        .eq('is_active', true);
-
-      const residentIds = links?.map(l => l.resident_id).filter(Boolean) || [];
+      const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
+      const residentIds = activeLinks.map((l: any) => l.resident_id).filter(Boolean) || [];
 
       if (residentIds.length === 0) {
         setReports([]);

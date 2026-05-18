@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         // Fetch News
-        final newsData = await _supabase.from('news').select().eq('is_published', true).order('created_at', ascending: false).limit(2);
+        final newsData = await _supabase.from('news').select().eq('published', true).order('created_at', ascending: false).limit(2);
         _news = newsData;
       }
     } catch (e) {

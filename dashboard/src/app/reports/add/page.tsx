@@ -36,6 +36,22 @@ export default function AddReportPage() {
         created_by: user?.id 
       });
       if (error) throw error;
+
+      // Send Push Notification if visible to family
+      if (form.status === 'published' && form.visible_to_family) {
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `تقرير طبي جديد: ${form.report_title}`,
+            body: `تم إصدار تقرير طبي جديد لمتابعته في لوحة تحكم الأهل.`,
+            url: `${window.location.origin}/family/reports`
+          }),
+        }).catch(err => console.error("Failed to send notification:", err));
+      }
+
       router.push('/reports');
     } catch (e: any) { alert('حدث خطأ: ' + e.message); }
     finally { setSaving(false); }

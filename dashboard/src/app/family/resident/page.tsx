@@ -47,17 +47,18 @@ export default function FamilyResidentPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/family/login'); return; }
       
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      // Combined Query: Fetch profile details, active family links, and resident records in a single request
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*, family_links(resident_id, relation, is_active, residents(*))')
+        .eq('id', user.id)
+        .single();
+        
       if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
       setProfile(prof);
 
-      const { data: links } = await supabase
-          .from('family_links')
-          .select('resident_id, relation, residents(*)')
-          .eq('family_user_id', user.id)
-          .eq('is_active', true);
-
-      const linked: any[] = links?.map(l => ({ ...(l.residents as any ?? {}), relation: l.relation })) ?? [];
+      const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
+      const linked: any[] = activeLinks.map((l: any) => ({ ...(l.residents ?? {}), relation: l.relation })) ?? [];
       setResidents(linked);
 
       if (linked.length > 0) {

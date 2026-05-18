@@ -10,8 +10,15 @@ import { getThumbnailUrl, getPathFromUrl } from '@/lib/imageUtils';
 
 const PhotoCard = memo(({ photo, onOpen, index }: any) => {
   const thumbUrl = useMemo(() => {
-    return photo.image_url; // Direct HD optimized image URL
-  }, [photo.image_url]);
+    if (photo.image_url && photo.image_url.includes('/storage/v1/object/public/')) {
+      const bucket = photo.visibility === 'private' ? 'private-resident-media' : 'public-gallery';
+      const path = getPathFromUrl(photo.image_url, bucket);
+      if (path) {
+        return getThumbnailUrl(supabase, bucket, path, 300);
+      }
+    }
+    return photo.image_url; // Fallback to direct HD optimized image URL
+  }, [photo.image_url, photo.visibility]);
 
   return (
     <div 
@@ -105,17 +112,18 @@ export default function FamilyGalleryPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/family/login'); return; }
     
-    const { data: prof } = await supabase.from('profiles').select('id, full_name, role').eq('id', user.id).single();
+    // Combined Query: Fetch profile details and family links in a single request
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, family_links(resident_id, is_active)')
+      .eq('id', user.id)
+      .single();
+      
     if (!prof || prof.role !== 'family') { router.push('/family/login'); return; }
     setProfile(prof);
 
-    const { data: links } = await supabase
-      .from('family_links')
-      .select('resident_id')
-      .eq('family_user_id', user.id)
-      .eq('is_active', true);
-
-    const ids = links?.map(l => l.resident_id).filter(Boolean) || [];
+    const activeLinks = prof.family_links?.filter((l: any) => l.is_active) || [];
+    const ids = activeLinks.map((l: any) => l.resident_id).filter(Boolean) || [];
     setResidentIds(ids);
     return ids;
   }, [router]);
@@ -169,14 +177,16 @@ export default function FamilyGalleryPage() {
       if (ids) fetchPhotos(0, true, ids);
     }
     init();
-  }, [loadProfileAndLinks, fetchPhotos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadProfileAndLinks]);
 
   useEffect(() => {
     if (profile) {
       setPage(0);
       fetchPhotos(0, true, residentIds);
     }
-  }, [filter, profile, fetchPhotos, residentIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const handleLoadMore = () => {
     const nextPage = page + 1;
