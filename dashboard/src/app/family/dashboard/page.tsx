@@ -93,7 +93,16 @@ function CelebrationConfetti() {
           0% { transform: translateY(-20px) rotate(0deg); }
           100% { transform: translateY(105vh) rotate(720deg); }
         }
-        @keyfexport default function FamilyDashboardPage() {
+        @keyframes fp-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function FamilyDashboardPage() {
   const router = useRouter();
   const [profile, setProfile]                     = useState<any>(null);
   const [residents, setResidents]                 = useState<any[]>([]);
