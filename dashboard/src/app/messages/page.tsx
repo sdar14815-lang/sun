@@ -21,10 +21,10 @@ export default function MessagesPage() {
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          id, body, status, created_at, reply_text, replied_at,
+          id, message, status, created_at, reply_text, replied_at,
           family_user_id, resident_id, sender_id,
-          profiles!messages_family_user_id_fkey(full_name),
-          residents!messages_resident_id_fkey(full_name)
+          profiles!family_user_id(full_name),
+          residents!resident_id(full_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -33,7 +33,7 @@ export default function MessagesPage() {
         // Fallback without joins if FK names differ
         const { data: fallback } = await supabase
           .from('messages')
-          .select('id, body, status, created_at, reply_text, replied_at, family_user_id, resident_id')
+          .select('id, message, status, created_at, reply_text, replied_at, family_user_id, resident_id')
           .order('created_at', { ascending: false });
         setMessages(fallback || []);
         return;
