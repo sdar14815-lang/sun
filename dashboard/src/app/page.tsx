@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Sidebar, { HamburgerButton } from '@/components/Sidebar';
-import { Users, FileText, Newspaper, Image as ImageIcon, Plus } from 'lucide-react';
+import { Users, FileText, Newspaper, Image as ImageIcon, Plus, MessageSquare } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -13,8 +13,10 @@ export default function DashboardPage() {
     reportsCount: 0,
     newsCount: 0,
     galleryCount: 0,
+    unreadMessagesCount: 0,
   });
   const [recentUpdates, setRecentUpdates] = useState<any[]>([]);
+  const [recentMessages, setRecentMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,28 +25,42 @@ export default function DashboardPage() {
 
   async function fetchDashboardData() {
     try {
-      const [{ count: resCount }, { count: repCount }, { count: newsCount }, { count: galCount }] =
+      const [resCountRes, repCountRes, newsCountRes, galCountRes, msgCountRes] =
         await Promise.all([
           supabase.from('residents').select('*', { count: 'exact', head: true }),
           supabase.from('weekly_reports').select('*', { count: 'exact', head: true }),
           supabase.from('news').select('*', { count: 'exact', head: true }).eq('published', true),
           supabase.from('gallery').select('*', { count: 'exact', head: true }),
+          supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'open'),
         ]);
 
       setStats({
-        residentsCount: resCount || 0,
-        reportsCount: repCount || 0,
-        newsCount: newsCount || 0,
-        galleryCount: galCount || 0,
+        residentsCount: resCountRes.count || 0,
+        reportsCount: repCountRes.count || 0,
+        newsCount: newsCountRes.count || 0,
+        galleryCount: galCountRes.count || 0,
+        unreadMessagesCount: msgCountRes.count || 0,
       });
 
-      const { data: recentRes } = await supabase
-        .from('residents')
-        .select('id, full_name, file_number, current_stage, current_status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const [recentRes, recentMsgs] = await Promise.all([
+        supabase
+          .from('residents')
+          .select('id, full_name, file_number, current_stage, current_status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('messages')
+          .select(`
+            id, message, status, created_at, family_user_id, resident_id,
+            profiles!family_user_id(full_name),
+            residents!resident_id(full_name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(5)
+      ]);
 
-      setRecentUpdates(recentRes || []);
+      setRecentUpdates(recentRes.data || []);
+      setRecentMessages(recentMsgs.data || []);
     } catch (error) {
       console.error('Failed to load dashboard data', error);
     } finally {
@@ -55,8 +71,8 @@ export default function DashboardPage() {
   const statCards = [
     { label: 'إجمالي المقيمين',  value: stats.residentsCount, icon: Users,     color: '#4299e1', gradient: 'linear-gradient(135deg, #63b3ed 0%, #4299e1 100%)' },
     { label: 'إجمالي التقارير',  value: stats.reportsCount,   icon: FileText,  color: '#48bb78', gradient: 'linear-gradient(135deg, #68d391 0%, #48bb78 100%)' },
-    { label: 'الأخبار المنشورة', value: stats.newsCount,      icon: Newspaper, color: '#ed8936', gradient: 'linear-gradient(135deg, #f6ad55 0%, #ed8936 100%)' },
     { label: 'صور المعرض',       value: stats.galleryCount,   icon: ImageIcon, color: '#9f7aea', gradient: 'linear-gradient(135deg, #b794f4 0%, #9f7aea 100%)' },
+    { label: 'الرسائل الجديدة',   value: stats.unreadMessagesCount, icon: MessageSquare, color: '#e53e3e', gradient: 'linear-gradient(135deg, #feb2b2 0%, #e53e3e 100%)' },
   ];
 
   return (
@@ -208,14 +224,77 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Alerts */}
+              {/* Recent Messages */}
               <div className="card">
-                <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', fontSize: '1.1rem', fontWeight: '700' }}>
-                  تنبيهات هامة
-                </h3>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
-                  <p style={{ marginBottom: '0.75rem' }}>• تم ربط لوحة التحكم بقاعدة بيانات Supabase بنجاح.</p>
-                  <p style={{ marginBottom: '0.75rem' }}>• النظام يعمل الآن بشكل حي ومباشر.</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: '700' }}>أحدث رسائل الأهالي الواردة</h3>
+                  <Link href="/messages" style={{ color: 'var(--primary-light)', fontSize: '0.88rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                    صندوق الوارد
+                  </Link>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {recentMessages.length === 0 ? (
+                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem 0' }}>
+                      لا توجد رسائل واردة حالياً.
+                    </p>
+                  ) : (
+                    recentMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.875rem 1rem',
+                          backgroundColor: msg.status === 'open' ? '#f0f9ff' : '#f8fafc',
+                          borderRadius: '10px',
+                          border: msg.status === 'open' ? '1px solid #bae6fd' : '1px solid var(--border)',
+                          gap: '0.75rem',
+                          minWidth: 0,
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center', minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            width: 40, height: 40,
+                            borderRadius: 10,
+                            backgroundColor: msg.status === 'open' ? '#e0f2fe' : '#e2e8f0',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: msg.status === 'open' ? '#0284c7' : 'var(--primary)',
+                            fontWeight: 'bold', fontSize: '1rem',
+                            flexShrink: 0,
+                          }}>
+                            {msg.profiles?.full_name ? msg.profiles.full_name.charAt(0) : 'أ'}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{ fontWeight: '700', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {msg.profiles?.full_name || 'أحد الأهالي'} 
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', marginRight: '0.5rem' }}>
+                                (مقيم: {msg.residents?.full_name || '—'})
+                              </span>
+                            </p>
+                            <p style={{ fontSize: '0.82rem', color: 'var(--text-normal)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.1rem' }}>
+                              {msg.message}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                          <span style={{ 
+                            fontSize: '0.7rem', 
+                            padding: '0.2rem 0.5rem', 
+                            borderRadius: '4px', 
+                            fontWeight: 'bold',
+                            backgroundColor: msg.status === 'open' ? '#e0f2fe' : msg.status === 'answered' ? '#f3e8ff' : '#f0fdf4',
+                            color: msg.status === 'open' ? '#0369a1' : msg.status === 'answered' ? '#6b21a8' : '#166534'
+                          }}>
+                            {msg.status === 'open' ? 'جديدة' : msg.status === 'answered' ? 'تم الرد' : 'مغلقة'}
+                          </span>
+                          <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'left' }}>
+                            {new Date(msg.created_at).toLocaleDateString('ar-EG')}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </section>

@@ -24,7 +24,7 @@ export default function AnalyticsPage() {
         supabase.from('news').select('*', { count: 'exact', head: true }).eq('published', true),
         supabase.from('gallery').select('*', { count: 'exact', head: true }).eq('visible_to_family', true),
         supabase.from('messages').select('*', { count: 'exact', head: true }),
-        supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'sent'),
+        supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'open'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'family').eq('status', 'active'),
         supabase.from('resident_updates').select('*', { count: 'exact', head: true }),
         supabase.from('resident_updates').select('id, title, content, update_type, visible_to_family, created_at, residents(full_name)').order('created_at', { ascending: false }).limit(5),
