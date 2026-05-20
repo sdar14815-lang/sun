@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { MessageSquare, Clock, CheckCircle, AlertCircle, Send, RefreshCw, Filter } from 'lucide-react';
 
@@ -22,6 +21,7 @@ export default function AdminRequestsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [requests, setRequests]  = useState<any[]>([]);
   const [loading, setLoading]    = useState(true);
+  const [error, setError]        = useState<string | null>(null);
   const [filter, setFilter]      = useState('pending');
   const [replyMap, setReplyMap]  = useState<Record<string, string>>({});
   const [sending, setSending]    = useState<Record<string, boolean>>({});
@@ -30,11 +30,14 @@ export default function AdminRequestsPage() {
 
   async function loadRequests() {
     setLoading(true);
+    setError(null);
     try {
-      let q = supabase.from('family_requests').select('*').order('created_at', { ascending: false });
-      if (filter !== 'all') q = q.eq('status', filter);
-      const { data } = await q;
-      setRequests(data || []);
+      const res = await fetch(`/api/family-requests?status=${filter}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'فشل تحميل الطلبات');
+      setRequests(json.data || []);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -45,12 +48,13 @@ export default function AdminRequestsPage() {
     if (!reply) return;
     setSending(s => ({ ...s, [id]: true }));
     try {
-      const { error } = await supabase.from('family_requests').update({
-        admin_reply: reply,
-        status: 'replied',
-        replied_at: new Date().toISOString(),
-      }).eq('id', id);
-      if (error) throw error;
+      const res = await fetch('/api/family-requests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, admin_reply: reply, status: 'replied', replied_at: new Date().toISOString() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
       setReplyMap(m => { const n = { ...m }; delete n[id]; return n; });
       loadRequests();
     } catch (err: any) {
@@ -60,9 +64,14 @@ export default function AdminRequestsPage() {
   }
 
   async function markReviewed(id: string) {
-    await supabase.from('family_requests').update({ status: 'reviewed' }).eq('id', id);
+    await fetch('/api/family-requests', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: 'reviewed' }),
+    });
     loadRequests();
   }
+
 
   const pending = requests.filter(r => r.status === 'pending').length;
 
@@ -105,6 +114,14 @@ export default function AdminRequestsPage() {
             </button>
           ))}
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.25rem', color: '#dc2626', fontWeight: '700', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <AlertCircle size={18} />
+            خطأ: {error}
+          </div>
+        )}
 
         {/* Table */}
         {loading ? (
