@@ -12,17 +12,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'غير مصرح لك بإضافة موظفين' }, { status: 403 });
     }
 
-    let role = session.user.user_metadata?.role;
-    if (!role) {
+    let userRole = session.user.user_metadata?.role;
+    if (!userRole) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .single();
-      role = profile?.role;
+      userRole = profile?.role;
     }
 
-    if (role !== 'super_admin' && role !== 'admin') {
+    if (userRole !== 'super_admin' && userRole !== 'admin') {
       return NextResponse.json({ error: 'غير مصرح لك بإضافة موظفين' }, { status: 403 });
     }
 
