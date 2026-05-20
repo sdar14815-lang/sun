@@ -8,7 +8,21 @@ export async function POST(request: Request) {
     const supabase = createRouteHandlerClient({ cookies });
     const { data: { session } } = await supabase.auth.getSession();
     
-    if (!session || !['super_admin', 'staff'].includes(session.user.user_metadata?.role)) {
+    if (!session) {
+      return NextResponse.json({ error: 'غير مصرح لك بتعديل حسابات أهالي' }, { status: 403 });
+    }
+
+    let role = session.user.user_metadata?.role;
+    if (!role) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      role = profile?.role;
+    }
+
+    if (!role || !['super_admin', 'admin', 'staff'].includes(role)) {
       return NextResponse.json({ error: 'غير مصرح لك بتعديل حسابات أهالي' }, { status: 403 });
     }
 
