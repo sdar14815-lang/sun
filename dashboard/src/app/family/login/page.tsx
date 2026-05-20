@@ -6,18 +6,21 @@ import { Sun, Eye, EyeOff, User, Lock } from 'lucide-react';
 
 export default function FamilyLoginPage() {
   const router = useRouter();
-  const [username, setUsername]         = useState('');
-  const [password, setPassword]         = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const loginEmail = username.trim().toLowerCase() + '@family.shams.com';
+      let loginEmail = username.trim().toLowerCase();
+      if (!loginEmail.includes('@')) {
+        loginEmail = loginEmail + '@family.shams.com';
+      }
 
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: loginEmail,
@@ -52,6 +55,7 @@ export default function FamilyLoginPage() {
       }
 
       router.replace('/family/dashboard');
+      router.refresh();
     } catch (e: any) {
       if (e.message?.includes('Email not confirmed')) {
         setError('البريد الإلكتروني غير مؤكد. يرجى التواصل مع الإدارة.');
@@ -79,8 +83,17 @@ export default function FamilyLoginPage() {
       {/* Decorative Sun SVG */}
       <svg style={{ position: 'absolute', top: '-60px', right: '-60px', width: '300px', height: '300px', opacity: 0.04 }} viewBox="0 0 200 200">
         <circle cx="100" cy="100" r="40" fill="#F0A500" />
-        {[0,30,60,90,120,150,180,210,240,270,300,330].map(angle => (
-          <line key={angle} x1="100" y1="100" x2={100 + 80 * Math.cos(angle * Math.PI / 180)} y2={100 + 80 * Math.sin(angle * Math.PI / 180)} stroke="#F0A500" strokeWidth="4" strokeLinecap="round" />
+        {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(angle => (
+          <line
+            key={angle}
+            x1="100"
+            y1="100"
+            x2={(100 + 80 * Math.cos(angle * Math.PI / 180)).toFixed(2)}
+            y2={(100 + 80 * Math.sin(angle * Math.PI / 180)).toFixed(2)}
+            stroke="#F0A500"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
         ))}
       </svg>
 

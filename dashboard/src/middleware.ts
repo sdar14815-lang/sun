@@ -33,53 +33,49 @@ export async function middleware(req: NextRequest) {
   const isFamilyLoginRoute = pathname === '/family/login';
   const isAdminLoginRoute = pathname === '/login';
 
-  // 4. Role Detection (Lightweight domain-based check with metadata fallback)
-  const userEmail = session?.user?.email || '';
-  const userRole = session?.user?.user_metadata?.role || (userEmail.endsWith('@family.shams.com') ? 'family' : 'admin');
+  // Helper to preserve cookies on redirect
+  const redirectWithCookies = (url: URL) => {
+    const redirectRes = NextResponse.redirect(url);
+    res.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        redirectRes.headers.append(key, value);
+      }
+    });
+    return redirectRes;
+  };
 
-  // 5. Routing and Guard Logic
+  // 4. Routing and Guard Logic
   if (!session) {
     // --- User is NOT logged in ---
-    if (pathname === '/' || pathname === '/index.html') {
-      return NextResponse.redirect(new URL('/family/login', req.url));
+    if (isFamilyRoute && !isFamilyLoginRoute) {
+      return redirectWithCookies(new URL('/family/login', req.url));
+    } else if (!isFamilyRoute && !isAdminLoginRoute) {
+      return redirectWithCookies(new URL('/login', req.url));
     }
-    if (isFamilyRoute) {
-      if (!isFamilyLoginRoute) {
-        return NextResponse.redirect(new URL('/family/login', req.url));
-      }
-    } else {
-      if (!isAdminLoginRoute) {
-        return NextResponse.redirect(new URL('/login', req.url));
-      }
-    }
-    return res;
   } else {
     // --- User IS logged in ---
+    const userRole = session.user.user_metadata?.role;
+
     if (userRole === 'family') {
-      // Family User trying to access Admin Portal
+      // Family user trying to access non-family route (e.g. admin dashboard)
       if (!isFamilyRoute) {
-        return NextResponse.redirect(new URL('/family/dashboard', req.url));
+        return redirectWithCookies(new URL('/family/dashboard', req.url));
       }
-      // Family User trying to access Family Login
       if (isFamilyLoginRoute) {
-        return NextResponse.redirect(new URL('/family/dashboard', req.url));
-      }
-      // Redirect exact /family or /family/ to /family/dashboard
-      if (pathname === '/family' || pathname === '/family/') {
-        return NextResponse.redirect(new URL('/family/dashboard', req.url));
+        return redirectWithCookies(new URL('/family/dashboard', req.url));
       }
     } else {
-      // Admin/Staff User trying to access Family Portal
+      // Admin/Staff user trying to access family routes
       if (isFamilyRoute) {
-        return NextResponse.redirect(new URL('/', req.url));
+        return redirectWithCookies(new URL('/', req.url));
       }
-      // Admin/Staff User trying to access Admin Login
       if (isAdminLoginRoute) {
-        return NextResponse.redirect(new URL('/', req.url));
+        return redirectWithCookies(new URL('/', req.url));
       }
     }
-    return res;
   }
+
+  return res;
 }
 
 export const config = {

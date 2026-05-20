@@ -1,8 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session || !['super_admin', 'staff'].includes(session.user.user_metadata?.role)) {
+      return NextResponse.json({ error: 'غير مصرح لك بحذف حسابات أهالي' }, { status: 403 });
+    }
+
     const { id } = await request.json();
 
     if (!id) {

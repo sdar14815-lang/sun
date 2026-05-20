@@ -53,8 +53,10 @@ export default function AddReportPage() {
       }
 
       router.push('/reports');
-    } catch (e: any) { alert('حدث خطأ: ' + e.message); }
-    finally { setSaving(false); }
+    } catch (e: any) { 
+      alert('حدث خطأ: ' + e.message); 
+      setSaving(false);
+    }
   }
 
   return (

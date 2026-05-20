@@ -8,14 +8,14 @@ export async function POST(request: Request) {
     const supabase = createRouteHandlerClient({ cookies });
     const { data: { session } } = await supabase.auth.getSession();
     
-    if (!session || !['super_admin', 'staff', 'doctor', 'therapist'].includes(session.user.user_metadata?.role)) {
-      return NextResponse.json({ error: 'غير مصرح لك بإضافة حسابات أهالي' }, { status: 403 });
+    if (!session || session.user.user_metadata?.role !== 'super_admin') {
+      return NextResponse.json({ error: 'غير مصرح لك بإضافة موظفين' }, { status: 403 });
     }
 
-    const { username, password, full_name, phone } = await request.json();
+    const { username, password, full_name, phone, role } = await request.json();
 
-    if (!username || !password) {
-      return NextResponse.json({ error: 'اسم المستخدم وكلمة المرور مطلوبان' }, { status: 400 });
+    if (!username || !password || !role) {
+      return NextResponse.json({ error: 'اسم المستخدم، كلمة المرور، والدور مطلوبان' }, { status: 400 });
     }
 
     // Initialize Supabase Admin Client
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       }
     );
 
-    const loginEmail = `${username.trim().toLowerCase()}@family.shams.com`;
+    const loginEmail = username.includes('@') ? username.trim().toLowerCase() : `${username.trim().toLowerCase()}@shams.com`;
 
     // 1. Create User using Admin API
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       user_metadata: {
         full_name: full_name,
         username: username,
-        role: 'family'
+        role: role
       }
     });
 
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
       full_name: full_name,
       username: username.trim().toLowerCase(),
       email: loginEmail,
-      phone: phone,
-      role: 'family',
+      phone: phone || null,
+      role: role,
       status: 'active'
     }], { onConflict: 'id' });
 

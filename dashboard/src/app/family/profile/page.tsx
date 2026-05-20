@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { User, Phone, MapPin, Save, CheckCircle2, Shield, Bell, Settings, Sparkles } from 'lucide-react';
+import { User, Phone, MapPin, Save, CheckCircle2, Shield, Bell, Lock, KeyRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 function getInitials(name: string) {
@@ -11,11 +11,21 @@ function getInitials(name: string) {
 export default function FamilyProfilePage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  
+  // Personal Data State
   const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  
+  // Security State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // UI State
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadProfile();
@@ -27,39 +37,74 @@ export default function FamilyProfilePage() {
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(data);
       setFullName(data?.full_name || '');
-      setPhoneNumber(data?.phone_number || '');
+      setPhone(data?.phone || ''); // Fixed: Using phone instead of phone_number
       setAddress(data?.address || '');
     }
     setLoading(false);
   }
 
-  async function handleUpdate(e: React.FormEvent) {
+  async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setSuccess(false);
+    setSuccess('');
+    setError('');
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) throw new Error('جلسة غير صالحة');
 
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({
           full_name: fullName,
-          phone_number: phoneNumber,
+          phone: phone, // Fixed: Using phone instead of phone_number
           address: address,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
-      if (error) throw error;
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
+      if (updateError) throw updateError;
+      setSuccess('تم حفظ وتحديث بيانات ملفك بنجاح.');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err: any) {
       console.error(err);
-      alert('حدث خطأ أثناء تحديث البيانات');
+      setError('حدث خطأ أثناء تحديث البيانات. ' + err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError('كلمتا المرور غير متطابقتين.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+      return;
+    }
+
+    setSavingPassword(true);
+    setSuccess('');
+    setError('');
+
+    try {
+      const { error: authError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (authError) throw authError;
+
+      setSuccess('تم تغيير كلمة المرور بنجاح.');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err: any) {
+      console.error(err);
+      setError('حدث خطأ أثناء تغيير كلمة المرور. ' + err.message);
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -68,7 +113,7 @@ export default function FamilyProfilePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--fp-surface)' }}>
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <div className="fp-skeleton" style={{ width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 1rem auto' }} />
-          <p style={{ color: 'var(--fp-text-muted)', fontFamily: 'Cairo, sans-serif', fontWeight: '700' }}>جاري تحميل الملف الشخصي...</p>
+          <p style={{ color: 'var(--fp-text-muted)', fontFamily: 'Cairo, sans-serif', fontWeight: '700' }}>جاري تحميل الإعدادات...</p>
         </div>
       </div>
     );
@@ -78,107 +123,123 @@ export default function FamilyProfilePage() {
     <div style={{ minHeight: '100vh', background: 'var(--fp-surface)', paddingBottom: '6rem' }}>
       <FamilyNavbar userName={fullName} />
       
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: 'clamp(0.875rem, 4vw, 2rem)' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: 'clamp(0.875rem, 4vw, 2rem)' }}>
         
-        {/* Profile Header with Cover */}
-        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ position: 'relative', marginBottom: '3rem', padding: 0, overflow: 'hidden' }}>
+        {/* Profile Header with Premium Cover */}
+        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ position: 'relative', marginBottom: '2.5rem', padding: 0, overflow: 'hidden', borderRadius: '24px' }}>
           <div style={{ 
-            height: '140px', 
-            background: 'linear-gradient(135deg, var(--fp-primary), var(--fp-primary-light))', 
+            height: '160px', 
+            background: 'linear-gradient(135deg, #0D2137, #1B4F72)', 
             position: 'relative'
           }}>
-            <div style={{ position: 'absolute', inset: 0, opacity: 0.15, background: 'radial-gradient(circle, #fff 10%, transparent 11%)', backgroundSize: '12px 12px' }} />
+            <div style={{ position: 'absolute', inset: 0, opacity: 0.1, background: 'radial-gradient(circle, #fff 10%, transparent 11%)', backgroundSize: '16px 16px' }} />
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '-60px', paddingBottom: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '-75px', paddingBottom: '2.5rem' }}>
             <div style={{ 
-              width: '100px', 
-              height: '100px', 
+              width: '120px', 
+              height: '120px', 
               borderRadius: '50%', 
-              background: 'linear-gradient(135deg, var(--fp-accent), #f39c12)', 
+              background: 'linear-gradient(135deg, #F0A500, #d97706)', 
               color: 'white', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              fontSize: '1.8rem',
+              fontSize: '2.5rem',
               fontWeight: '900',
-              boxShadow: '0 10px 25px rgba(240, 165, 0, 0.4)',
-              border: '4px solid white',
+              boxShadow: '0 15px 35px rgba(240, 165, 0, 0.4)',
+              border: '6px solid white',
               fontFamily: 'Cairo, sans-serif'
             }}>
               {getInitials(fullName)}
             </div>
             
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '900', color: 'var(--fp-primary)' }}>{fullName}</h1>
-              <p style={{ color: 'var(--fp-text-muted)', fontWeight: '700', fontSize: '0.8rem', marginTop: '0.2rem' }}>عضو عائلة معتمد • دار شمس التعافي</p>
+            <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--fp-primary)' }}>{fullName}</h1>
+              <p style={{ color: 'var(--fp-text-muted)', fontWeight: '700', fontSize: '0.85rem', marginTop: '0.3rem', background: '#F1F5F9', padding: '0.25rem 0.75rem', borderRadius: '20px', display: 'inline-block' }}>
+                بوابة الأهالي • دار شمس التعافي
+              </p>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+        {/* Global Notifications */}
+        {success && (
+          <div className="fp-animate" style={{ marginBottom: '1.5rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#059669', padding: '1.25rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.9rem', fontWeight: '800' }}>
+            <CheckCircle2 size={20} />
+            <span>{success}</span>
+          </div>
+        )}
+        
+        {error && (
+          <div className="fp-animate" style={{ marginBottom: '1.5rem', backgroundColor: '#FEE2E2', color: '#DC2626', padding: '1.25rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px solid #FECACA', fontSize: '0.9rem', fontWeight: '800' }}>
+            <Shield size={20} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
           
           {/* Main Settings Form */}
           <form 
-            onSubmit={handleUpdate} 
+            onSubmit={handleUpdateProfile} 
             className="fp-glass-card fp-animate fp-animate-delay-2"
-            style={{ padding: '2rem', position: 'relative' }}
+            style={{ padding: '2.5rem', position: 'relative', borderRadius: '24px' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', borderBottom: '1px solid var(--fp-border)', paddingBottom: '1rem' }}>
-              <div className="fp-glow-icon" style={{ width: '36px', height: '36px' }}>
-                <User size={18} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', borderBottom: '2px solid #F1F5F9', paddingBottom: '1.25rem' }}>
+              <div className="fp-glow-icon" style={{ width: '40px', height: '40px' }}>
+                <User size={20} />
               </div>
-              <h2 style={{ fontSize: '1.02rem', fontWeight: '900', color: 'var(--fp-primary)' }}>تعديل وتحديث البيانات الشخصية</h2>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--fp-primary)' }}>المعلومات الشخصية والاتصال</h2>
             </div>
 
-            {success && (
-              <div className="fp-animate" style={{ marginBottom: '1.5rem', backgroundColor: 'rgba(16, 185, 129, 0.08)', color: 'var(--fp-success)', padding: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(16, 185, 129, 0.15)', fontSize: '0.85rem', fontWeight: '800' }}>
-                <CheckCircle2 size={16} />
-                <span>تم حفظ وتحديث بيانات ملفك بنجاح.</span>
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.85rem' }}>الاسم الكامل للأهل *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.9rem' }}>الاسم الكامل للأهل *</label>
                 <div style={{ position: 'relative' }}>
-                  <User size={16} color="var(--fp-text-muted)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <User size={18} color="#94A3B8" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
                     type="text" 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.85rem 2.8rem 0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--fp-border)', fontFamily: 'Cairo, sans-serif', background: 'white', fontWeight: '600', fontSize: '0.9rem' }}
+                    style={{ width: '100%', padding: '1rem 3rem 1rem 1rem', borderRadius: '14px', border: '2px solid #E2E8F0', fontFamily: 'Cairo, sans-serif', background: '#F8FAFC', fontWeight: '700', fontSize: '0.95rem', transition: 'all 0.2s' }}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--fp-accent)'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#E2E8F0'}
                   />
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.85rem' }}>رقم الهاتف المعتمد (طوارئ) *</label>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.9rem' }}>رقم الهاتف المعتمد (طوارئ) *</label>
                 <div style={{ position: 'relative' }}>
-                  <Phone size={16} color="var(--fp-text-muted)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Phone size={18} color="#94A3B8" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
                     type="tel" 
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     required
                     placeholder="05xxxxxxxx"
-                    style={{ width: '100%', padding: '0.85rem 2.8rem 0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--fp-border)', fontFamily: 'Cairo, sans-serif', background: 'white', fontWeight: '600', fontSize: '0.9rem', textAlign: 'left', direction: 'ltr' }}
+                    style={{ width: '100%', padding: '1rem 3rem 1rem 1rem', borderRadius: '14px', border: '2px solid #E2E8F0', fontFamily: 'Cairo, sans-serif', background: '#F8FAFC', fontWeight: '700', fontSize: '0.95rem', textAlign: 'left', direction: 'ltr', transition: 'all 0.2s' }}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--fp-accent)'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#E2E8F0'}
                   />
                 </div>
               </div>
             </div>
 
-            <div style={{ marginBottom: '2rem', marginTop: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.85rem' }}>عنوان السكن والقرابة</label>
+            <div style={{ marginTop: '1.5rem', marginBottom: '2.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.9rem' }}>عنوان السكن / صلة القرابة</label>
               <div style={{ position: 'relative' }}>
-                <MapPin size={16} color="var(--fp-text-muted)" style={{ position: 'absolute', right: '1rem', top: '1rem' }} />
+                <MapPin size={18} color="#94A3B8" style={{ position: 'absolute', right: '1.25rem', top: '1.25rem' }} />
                 <textarea 
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   rows={3}
                   placeholder="مثال: الرياض، حي الياسمين - صلة القرابة: والد المقيم"
-                  style={{ width: '100%', padding: '0.85rem 2.8rem 0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--fp-border)', fontFamily: 'Cairo, sans-serif', background: 'white', resize: 'none', fontWeight: '600', fontSize: '0.9rem', lineHeight: '1.7' }}
+                  style={{ width: '100%', padding: '1rem 3rem 1rem 1rem', borderRadius: '14px', border: '2px solid #E2E8F0', fontFamily: 'Cairo, sans-serif', background: '#F8FAFC', resize: 'none', fontWeight: '700', fontSize: '0.95rem', lineHeight: '1.7', transition: 'all 0.2s' }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--fp-accent)'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#E2E8F0'}
                 />
               </div>
             </div>
@@ -187,42 +248,104 @@ export default function FamilyProfilePage() {
               type="submit" 
               disabled={saving}
               style={{ 
-                width: '100%', padding: '1rem', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                background: 'linear-gradient(135deg, var(--fp-primary), var(--fp-primary-light))',
+                width: '100%', padding: '1.1rem', color: 'white', border: 'none', borderRadius: '16px', fontWeight: '900', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                background: 'linear-gradient(135deg, var(--fp-primary), var(--fp-primary-dark))',
                 fontFamily: 'Cairo, sans-serif',
-                boxShadow: 'var(--fp-shadow-double)',
+                boxShadow: '0 10px 25px rgba(13, 33, 55, 0.25)',
                 opacity: saving ? 0.7 : 1,
                 transition: 'all 0.2s'
               }}
-              onMouseOver={e => { if (!saving) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseOver={e => { if (!saving) e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseOut={e => { if (!saving) e.currentTarget.style.transform = 'none'; }}
             >
-              {saving ? 'جاري التحديث...' : <><Save size={18} /> حفظ وتثبيت التغييرات</>}
+              {saving ? 'جاري التحديث...' : <><Save size={20} /> حفظ وتثبيت التغييرات</>}
+            </button>
+          </form>
+
+          {/* Security Form */}
+          <form 
+            onSubmit={handleUpdatePassword} 
+            className="fp-glass-card fp-animate fp-animate-delay-3"
+            style={{ padding: '2.5rem', position: 'relative', borderRadius: '24px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', borderBottom: '2px solid #F1F5F9', paddingBottom: '1.25rem' }}>
+              <div style={{ width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+                <KeyRound size={20} />
+              </div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#B91C1C' }}>الأمان وكلمة المرور</h2>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.9rem' }}>كلمة المرور الجديدة</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={18} color="#94A3B8" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="password" 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    style={{ width: '100%', padding: '1rem 3rem 1rem 1rem', borderRadius: '14px', border: '2px solid #E2E8F0', fontFamily: 'inherit', background: '#F8FAFC', fontWeight: '700', fontSize: '1rem', transition: 'all 0.2s', direction: 'ltr' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '800', color: 'var(--fp-primary)', fontSize: '0.9rem' }}>تأكيد كلمة المرور</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={18} color="#94A3B8" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="password" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    style={{ width: '100%', padding: '1rem 3rem 1rem 1rem', borderRadius: '14px', border: '2px solid #E2E8F0', fontFamily: 'inherit', background: '#F8FAFC', fontWeight: '700', fontSize: '1rem', transition: 'all 0.2s', direction: 'ltr' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={savingPassword || (!newPassword && !confirmPassword)}
+              style={{ 
+                width: '100%', padding: '1.1rem', color: '#B91C1C', border: 'none', borderRadius: '16px', fontWeight: '900', fontSize: '1rem', cursor: (!newPassword && !confirmPassword) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                background: '#FEE2E2',
+                fontFamily: 'Cairo, sans-serif',
+                boxShadow: '0 8px 20px rgba(239, 68, 68, 0.15)',
+                opacity: (savingPassword || (!newPassword && !confirmPassword)) ? 0.6 : 1,
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={e => { if (!savingPassword && (newPassword || confirmPassword)) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseOut={e => { if (!savingPassword && (newPassword || confirmPassword)) e.currentTarget.style.transform = 'none'; }}
+            >
+              {savingPassword ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
             </button>
           </form>
 
           {/* Account Info Cards */}
-          <div className="fp-animate fp-animate-delay-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-             <div className="fp-glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--fp-success)', background: 'white' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <Shield size={16} style={{ color: 'var(--fp-success)' }} />
-                  <h3 style={{ fontSize: '0.88rem', fontWeight: '900', color: 'var(--fp-primary)' }}>خصوصية وأمان البيانات</h3>
+          <div className="fp-animate fp-animate-delay-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+             <div className="fp-glass-card" style={{ padding: '1.5rem', borderLeft: '5px solid #10B981', background: 'white', borderRadius: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <Shield size={20} style={{ color: '#10B981' }} />
+                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--fp-primary)' }}>خصوصية وأمان البيانات</h3>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--fp-text-muted)', lineHeight: 1.6, fontWeight: '600' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--fp-text-muted)', lineHeight: 1.7, fontWeight: '600' }}>
                    كافة تفاصيل وبيانات ذويكم مشفرة وآمنة تماماً ولا يتم مشاركتها خارج نطاق الطاقم الطبي المتابع لرحلة التعافي.
                 </p>
              </div>
 
-             <div className="fp-glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--fp-accent)', background: 'white' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <Bell size={16} style={{ color: 'var(--fp-accent)' }} />
-                  <h3 style={{ fontSize: '0.88rem', fontWeight: '900', color: 'var(--fp-primary)' }}>التنبيهات العاجلة</h3>
+             <div className="fp-glass-card" style={{ padding: '1.5rem', borderLeft: '5px solid var(--fp-accent)', background: 'white', borderRadius: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <Bell size={20} style={{ color: 'var(--fp-accent)' }} />
+                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--fp-primary)' }}>التنبيهات العاجلة</h3>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--fp-text-muted)', lineHeight: 1.6, fontWeight: '600' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--fp-text-muted)', lineHeight: 1.7, fontWeight: '600' }}>
                    يرجى التأكد من بقاء رقم الهاتف أعلاه محدثاً باستمرار لتلقي الاتصالات والتنبيهات الطبية الهامة والزيارات الدورية.
                 </p>
              </div>
           </div>
+
         </div>
       </div>
     </div>

@@ -20,12 +20,14 @@ import {
   Calendar,
   LogOut,
   Tv,
+  Send,
 } from 'lucide-react';
 
 const menuItems = [
   { name: 'الرئيسية',        icon: LayoutDashboard, path: '/' },
   { name: 'المقيمون',        icon: Users,           path: '/residents' },
   { name: 'الأسر والأهالي',  icon: UserPlus,        path: '/families' },
+  { name: 'طلبات الأهالي 🔔', icon: Send,          path: '/requests' },
   { name: 'التقارير',        icon: ClipboardList,   path: '/reports' },
   { name: 'التحديثات اليومية', icon: Activity,      path: '/updates' },
   { name: 'الجدول اليومي',     icon: Calendar,      path: '/schedule' },
@@ -52,7 +54,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const handleLogout = async () => {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
       await supabase.auth.signOut();
-      router.push('/login');
+      window.location.href = '/login';
     }
   };
 

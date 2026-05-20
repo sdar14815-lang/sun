@@ -81,7 +81,6 @@ export default function AddResidentPage() {
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء حفظ البيانات');
-    } finally {
       setLoading(false);
     }
   };

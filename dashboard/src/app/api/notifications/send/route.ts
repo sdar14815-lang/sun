@@ -1,7 +1,16 @@
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session || !['super_admin', 'staff', 'doctor', 'therapist'].includes(session.user.user_metadata?.role)) {
+      return NextResponse.json({ error: 'غير مصرح لك بإرسال إشعارات' }, { status: 403 });
+    }
+
     const { title, body, url } = await request.json();
 
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;

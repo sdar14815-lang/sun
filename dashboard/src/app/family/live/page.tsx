@@ -108,7 +108,7 @@ export default function FamilyLivePage() {
       <FamilyNavbar userName={profile?.full_name} />
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: 'clamp(1rem, 4vw, 2rem)' }}>
-        
+
         {/* Header Block */}
         <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)' }}>
           <div>
@@ -134,14 +134,14 @@ export default function FamilyLivePage() {
               بث مباشر يومي مخصص لأهالي المقيمين للاطمئنان على أبنائهم ومتابعة أنشطتهم اليومية بالمركز
             </p>
           </div>
-          
-          <button 
-            onClick={() => loadData(true)} 
+
+          <button
+            onClick={() => loadData(true)}
             disabled={refreshing}
-            style={{ 
-              background: 'rgba(13,40,71,0.06)', 
-              border: '1px solid rgba(13,40,71,0.1)', 
-              borderRadius: '12px', 
+            style={{
+              background: 'rgba(13,40,71,0.06)',
+              border: '1px solid rgba(13,40,71,0.1)',
+              borderRadius: '12px',
               padding: '0.5rem 0.75rem',
               color: 'var(--fp-primary)',
               cursor: 'pointer',
@@ -184,9 +184,9 @@ export default function FamilyLivePage() {
             </div>
           ) : (
             /* Broadcast Offline State */
-            <div style={{ 
-              padding: 'clamp(2.5rem, 8vw, 5rem) 1.5rem', 
-              textAlign: 'center', 
+            <div style={{
+              padding: 'clamp(2.5rem, 8vw, 5rem) 1.5rem',
+              textAlign: 'center',
               background: 'linear-gradient(135deg, #0D2137 0%, #153E5C 100%)',
               color: 'white',
               display: 'flex',
@@ -195,13 +195,13 @@ export default function FamilyLivePage() {
               justifyContent: 'center',
               position: 'relative'
             }}>
-              <div style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
-                background: 'rgba(255,255,255,0.08)', 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.08)',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 1.5rem auto',
                 border: '1.5px solid rgba(255,255,255,0.15)',
@@ -215,18 +215,18 @@ export default function FamilyLivePage() {
               <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', maxWidth: '420px', margin: '0 auto 1.5rem auto', lineHeight: '1.6', fontWeight: '600' }}>
                 ترقبوا بث الاطمئنان اليومي القادم لمتابعة ورؤية أبنائكم بالمركز. سيتم إشعاركم فور بدء البث المباشر المخصص للأهالي.
               </p>
-              
+
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button 
-                  onClick={() => loadData(true)} 
-                  className="btn" 
-                  style={{ 
-                    background: 'var(--fp-accent)', 
-                    color: 'white', 
-                    fontWeight: '800', 
-                    padding: '0.6rem 1.5rem', 
-                    borderRadius: '12px', 
-                    border: 'none', 
+                <button
+                  onClick={() => loadData(true)}
+                  className="btn"
+                  style={{
+                    background: 'var(--fp-accent)',
+                    color: 'white',
+                    fontWeight: '800',
+                    padding: '0.6rem 1.5rem',
+                    borderRadius: '12px',
+                    border: 'none',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
                     boxShadow: '0 6px 15px rgba(240, 165, 0, 0.25)',
@@ -247,7 +247,7 @@ export default function FamilyLivePage() {
             <h2 style={{ fontSize: '1.05rem', fontWeight: '900', color: 'var(--fp-primary)', marginBottom: '1rem', borderBottom: '1px solid var(--fp-border)', paddingBottom: '0.5rem' }}>
               معلومات بث الاطمئنان الحالي
             </h2>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '14px', border: '1px solid #EDF2F7' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(13,40,71,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fp-primary)' }}>
@@ -280,17 +280,17 @@ export default function FamilyLivePage() {
                 {liveStream.description || 'لا يوجد وصف مضاف لهذه الجلسة.'}
               </p>
             </div>
- 
+
             {/* Premium security notice */}
-            <div style={{ 
-              marginTop: '1.5rem', 
-              background: 'rgba(13, 40, 71, 0.03)', 
-              border: '1px solid rgba(13, 40, 71, 0.06)', 
-              borderRadius: '14px', 
-              padding: '0.75rem 1rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.75rem' 
+            <div style={{
+              marginTop: '1.5rem',
+              background: 'rgba(13, 40, 71, 0.03)',
+              border: '1px solid rgba(13, 40, 71, 0.06)',
+              borderRadius: '14px',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
             }}>
               <Shield size={16} style={{ color: 'var(--fp-primary)', flexShrink: 0 }} />
               <p style={{ fontSize: '0.72rem', color: 'var(--fp-primary)', fontWeight: '700', margin: 0, lineHeight: 1.4 }}>

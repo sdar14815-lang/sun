@@ -51,7 +51,6 @@ export default function AddNewsPage() {
       router.push('/news');
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء حفظ الخبر');
-    } finally {
       setLoading(false);
     }
   };

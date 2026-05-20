@@ -169,9 +169,9 @@ export default function ResidentProfilePage() {
         )}
 
         {/* ── Tabs ── */}
-        <div style={{ 
-          display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--border)', 
-          marginBottom: '1.5rem', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' 
+        <div style={{
+          display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--border)',
+          marginBottom: '1.5rem', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch'
         }}>
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
@@ -207,7 +207,7 @@ export default function ResidentProfilePage() {
                 </div>
               ))}
             </div>
-            
+
             <div className="card" style={{ marginBottom: 0 }}>
               <h3 style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontWeight: '700' }}>
                 <Activity size={18} /> الحالة العلاجية
@@ -233,7 +233,7 @@ export default function ResidentProfilePage() {
                 <p style={{ whiteSpace: 'pre-wrap', color: '#742a2a', lineHeight: '1.8', fontSize: '0.95rem' }}>{resident.notes_internal}</p>
               </div>
             )}
-            
+
             {resident.notes_visible_to_family && (
               <div className="card" style={{ gridColumn: '1 / -1', border: '1px solid #c6f6d5', backgroundColor: '#f0fff4' }}>
                 <h3 style={{ color: '#2f855a', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: '700', fontSize: '1rem' }}>

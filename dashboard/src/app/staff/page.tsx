@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Sidebar, { HamburgerButton } from '@/components/Sidebar';
-import { UserPlus, Search, Trash2, Shield, User } from 'lucide-react';
+import { UserPlus, Search, Trash2, Shield, User, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -10,6 +10,9 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newStaff, setNewStaff] = useState({ full_name: '', username: '', password: '', role: 'staff', phone: '' });
 
   useEffect(() => {
     fetchStaff();
@@ -29,6 +32,29 @@ export default function StaffPage() {
       console.error('Error fetching staff:', error.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAddStaff(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/create-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStaff)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'حدث خطأ أثناء إضافة الموظف');
+
+      alert('تمت إضافة الموظف بنجاح');
+      setIsModalOpen(false);
+      setNewStaff({ full_name: '', username: '', password: '', role: 'staff', phone: '' });
+      fetchStaff();
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -58,7 +84,7 @@ export default function StaffPage() {
             <h1 style={{ fontSize: '1.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>إدارة فريق العمل</h1>
             <p style={{ color: 'var(--text-muted)' }}>إدارة الأطباء، الأخصائيين، وموظفي المركز</p>
           </div>
-          <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={() => setIsModalOpen(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <UserPlus size={20} />
             إضافة موظف جديد
           </button>
@@ -143,6 +169,82 @@ export default function StaffPage() {
           )}
         </div>
       </main>
+
+      {/* Add Staff Modal */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>إضافة موظف جديد</h2>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddStaff} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>الاسم بالكامل</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={newStaff.full_name}
+                  onChange={(e) => setNewStaff({...newStaff, full_name: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>اسم المستخدم / البريد (يستخدم في الدخول)</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={newStaff.username}
+                  onChange={(e) => setNewStaff({...newStaff, username: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>كلمة المرور</label>
+                <input 
+                  type="password" 
+                  required 
+                  value={newStaff.password}
+                  onChange={(e) => setNewStaff({...newStaff, password: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>الدور (Role)</label>
+                <select 
+                  value={newStaff.role}
+                  onChange={(e) => setNewStaff({...newStaff, role: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'white' }}
+                >
+                  <option value="staff">موظف عام</option>
+                  <option value="doctor">طبيب</option>
+                  <option value="therapist">أخصائي</option>
+                  <option value="super_admin">مدير نظام</option>
+                </select>
+              </div>
+
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+                <button type="submit" disabled={isSubmitting} className="btn btn-primary" style={{ flex: 1, padding: '0.75rem' }}>
+                  {isSubmitting ? 'جاري الإضافة...' : 'حفظ وإضافة'}
+                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" style={{ flex: 1, padding: '0.75rem', backgroundColor: '#e2e8f0', color: '#4a5568' }}>
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

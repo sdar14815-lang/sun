@@ -29,19 +29,38 @@ export default function OneSignalInit() {
     }
 
     window.OneSignalDeferred.push(async (OneSignal: any) => {
-      await OneSignal.init({
-        appId: appId,
-        allowLocalhostAsSecureOrigin: true,
-        notifyButton: {
-          enable: false, // Set to false to design a custom premium subscribe trigger, or true for a simple bell.
-        },
-        welcomeNotification: {
-          title: "دار شمس التعافي ☀️",
-          message: "أهلاً بك! تم تفعيل التنبيهات بنجاح لمتابعة حالة ذويكم.",
+      try {
+        if (OneSignal.initialized) {
+          console.log("OneSignal: Already initialized.");
+          return;
         }
-      });
-      
-      console.log("OneSignal initialized successfully.");
+
+        // Proceed to initialize OneSignal
+
+
+        await OneSignal.init({
+          appId: appId,
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: false, // Set to false to design a custom premium subscribe trigger, or true for a simple bell.
+          },
+          welcomeNotification: {
+            title: "دار شمس التعافي ☀️",
+            message: "أهلاً بك! تم تفعيل التنبيهات بنجاح لمتابعة حالة ذويكم.",
+          }
+        });
+        
+        console.log("OneSignal initialized successfully.");
+      } catch (e: any) {
+        const msg = e?.message || String(e);
+        if (msg.includes('already initialized') || msg.includes('SDK already initialized')) {
+          console.log("OneSignal: Skip double initialization.");
+        } else if (msg.includes('Can only be used on')) {
+          console.info("OneSignal: Domain mismatch caught and bypassed gracefully in local dev.");
+        } else {
+          console.warn("OneSignal initialization skipped or warning occurred:", e);
+        }
+      }
     });
   }, []);
 

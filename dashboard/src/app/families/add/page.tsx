@@ -43,7 +43,6 @@ export default function AddFamilyPage() {
       router.push('/families');
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء إنشاء الحساب');
-    } finally {
       setLoading(false);
     }
   };

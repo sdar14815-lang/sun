@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import Image from 'next/image';
 import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { Plus, Image as ImageIcon, Trash2, Loader2, ExternalLink, Eye, EyeOff, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -16,11 +17,12 @@ const GalleryItem = memo(({ img, onToggle, onDelete, typeLabels }: any) => {
         </div>
       )}
       <div style={{ backgroundColor: '#f1f5f9', height: '180px', position: 'relative' }}>
-         <img 
+         <Image 
             src={img.image_url} 
-            alt={img.title} 
-            loading="lazy"
-            style={{ width: '100%', height: '180px', objectFit: 'cover', transition: 'opacity 0.5s ease' }} 
+            alt={img.title || 'صورة'} 
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            style={{ objectFit: 'cover', transition: 'opacity 0.5s ease' }} 
             onLoad={(e) => (e.currentTarget.style.opacity = '1')}
          />
       </div>

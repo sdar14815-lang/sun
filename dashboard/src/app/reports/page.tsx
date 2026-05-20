@@ -54,7 +54,7 @@ export default function ReportsPage() {
         .select('*, residents(*), profiles!weekly_reports_created_by_fkey(full_name)')
         .eq('id', reportId)
         .single();
-      
+
       if (error) {
         const { data: fallback, error: fallbackError } = await supabase
           .from('weekly_reports')
@@ -76,7 +76,7 @@ export default function ReportsPage() {
 
   function generatePDF(report: any) {
     if (!report) return;
-    
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('⚠️ الرجاء السماح بالنوافذ المنبثقة (Popups) لتصدير ملف الـ PDF.');
@@ -96,7 +96,7 @@ export default function ReportsPage() {
     };
 
     const formattedContent = report.report_body || 'لا يوجد تفاصيل للتقرير.';
-    
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
@@ -264,7 +264,7 @@ export default function ReportsPage() {
             </div>
             <div class="meta-area">
               <p><strong>تاريخ الإصدار:</strong> ${date}</p>
-              <p><strong>الرقم المرجعي:</strong> WR-${report.id.substring(0,8).toUpperCase()}</p>
+              <p><strong>الرقم المرجعي:</strong> WR-${report.id.substring(0, 8).toUpperCase()}</p>
               <p><strong>المصدر:</strong> الكادر المعالج بالمركز</p>
             </div>
           </div>
@@ -379,10 +379,12 @@ export default function ReportsPage() {
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
           {(['all', 'published', 'draft'] as const).map(f => (
             <button key={f} onClick={() => setFilterStatus(f)}
-              style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: '2px solid', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: '600',
+              style={{
+                padding: '0.4rem 1rem', borderRadius: '20px', border: '2px solid', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: '600',
                 borderColor: filterStatus === f ? 'var(--primary)' : 'var(--border)',
                 backgroundColor: filterStatus === f ? 'var(--primary)' : 'white',
-                color: filterStatus === f ? 'white' : 'var(--text-muted)' }}>
+                color: filterStatus === f ? 'white' : 'var(--text-muted)'
+              }}>
               {f === 'all' ? `الكل (${reports.length})` : f === 'published' ? `منشور (${publishedCount})` : `مسودة (${reports.length - publishedCount})`}
             </button>
           ))}
@@ -435,9 +437,11 @@ export default function ReportsPage() {
                       <td style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.created_at).toLocaleDateString('ar-EG')}</td>
                       <td style={{ padding: '1rem' }}>
                         <button onClick={() => toggleStatus(r.id, effectiveStatus)}
-                          style={{ padding: '0.3rem 0.75rem', borderRadius: '16px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', fontFamily: 'inherit',
+                          style={{
+                            padding: '0.3rem 0.75rem', borderRadius: '16px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', fontFamily: 'inherit',
                             backgroundColor: effectiveStatus === 'published' ? '#c6f6d5' : '#fed7d7',
-                            color: effectiveStatus === 'published' ? '#22543d' : '#822727' }}>
+                            color: effectiveStatus === 'published' ? '#22543d' : '#822727'
+                          }}>
                           {effectiveStatus === 'published' ? '✓ منشور' : '● مسودة'}
                         </button>
                       </td>
@@ -449,7 +453,7 @@ export default function ReportsPage() {
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <button 
+                          <button
                             onClick={() => handlePreviewReport(r.id)}
                             style={{
                               padding: '0.35rem 0.75rem',
@@ -469,16 +473,16 @@ export default function ReportsPage() {
                             <FileText size={13} />
                             معاينة / PDF
                           </button>
-                          
-                          <button 
+
+                          <button
                             onClick={() => deleteReport(r.id)}
-                            style={{ 
-                              padding: '0.35rem 0.75rem', 
-                              borderRadius: '8px', 
-                              background: '#fff5f5', 
-                              border: '1px solid #fed7d7', 
-                              cursor: 'pointer', 
-                              color: '#c53030', 
+                            style={{
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '8px',
+                              background: '#fff5f5',
+                              border: '1px solid #fed7d7',
+                              cursor: 'pointer',
+                              color: '#c53030',
                               fontSize: '0.78rem',
                               fontWeight: '700',
                               fontFamily: 'Cairo, sans-serif'
@@ -517,7 +521,7 @@ export default function ReportsPage() {
                 </div>
               ) : previewingReport ? (
                 <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  
+
                   {/* Patient and Report info */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#f7fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #edf2f7' }}>
                     <div>

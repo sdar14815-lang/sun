@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar, ChevronDown, Tv } from 'lucide-react';
+import { Sun, Home, User, FileText, Newspaper, Image, MessageSquare, Bell, LogOut, Menu, X, Phone, MessageCircle, Info, Calendar, ChevronDown, Tv, TrendingUp, Send } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 
@@ -10,8 +10,9 @@ import { supabase } from '@/lib/supabase';
 const desktopItems = [
   { name: 'الرئيسية', icon: Home, path: '/family/dashboard' },
   { name: 'ملف المقيم', icon: User, path: '/family/resident' },
+  { name: 'مسار التقدم', icon: TrendingUp, path: '/family/progress' },
   { name: 'التقارير', icon: FileText, path: '/family/reports' },
-  { name: 'الرسائل', icon: MessageSquare, path: '/family/messages' },
+  { name: 'طلباتي', icon: Send, path: '/family/requests' },
   { name: 'الصور', icon: Image, path: '/family/gallery' },
 ];
 
@@ -29,9 +30,9 @@ const dropdownItems = [
 // ── Mobile Bottom Navigation Bar (Core 4 items + "More" trigger) ──
 const mobileBottomItems = [
   { name: 'الرئيسية', icon: Home, path: '/family/dashboard' },
-  { name: 'ملف المقيم', icon: User, path: '/family/resident' },
+  { name: 'مسار التقدم', icon: TrendingUp, path: '/family/progress' },
   { name: 'التقارير', icon: FileText, path: '/family/reports' },
-  { name: 'الرسائل', icon: MessageSquare, path: '/family/messages' },
+  { name: 'طلباتي', icon: Send, path: '/family/requests' },
 ];
 
 // ── Grouped Categories for the Mobile Side Drawer ──
@@ -47,6 +48,7 @@ const groupedCategories = [
   {
     title: '💬 التواصل والطلبات',
     items: [
+      { name: 'طلباتي والتواصل مع الإدارة', icon: Send, path: '/family/requests' },
       { name: 'الرسائل والمراسلة', icon: MessageSquare, path: '/family/messages' },
       { name: 'طلبات الاحتياجات', icon: MessageCircle, path: '/family/needs' },
       { name: 'مركز التنبيهات', icon: Bell, path: '/family/notifications' },
@@ -55,6 +57,7 @@ const groupedCategories = [
   {
     title: '📋 التقارير الطبية والمستندات',
     items: [
+      { name: 'مسار التقدم التراكمي', icon: TrendingUp, path: '/family/progress' },
       { name: 'التقارير الأسبوعية', icon: FileText, path: '/family/reports' },
     ]
   },
@@ -83,7 +86,7 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push('/family/login');
+    window.location.href = '/family/login';
   }
 
   return (
@@ -142,15 +145,11 @@ export default function FamilyNavbar({ userName }: { userName?: string }) {
           </button>
         </div>
 
-        {/* Mobile: hamburger */}
+        {/* Mobile: hamburger (Hidden - Now relies completely on Bottom Nav "المزيد") */}
         <button
-          className="family-header-mobile"
           onClick={() => setMobileMenuOpen(v => !v)}
           style={{
-            background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
-            borderRadius: '10px', padding: '0.5rem', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            minWidth: '40px', minHeight: '40px',
+            display: 'none',
           }}
         >
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}

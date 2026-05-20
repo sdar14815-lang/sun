@@ -27,23 +27,11 @@ export default function LoginPage() {
       });
       if (authError) throw authError;
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, status')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileError || !profile || profile.role === 'family') {
-        await supabase.auth.signOut();
-        throw new Error('عذراً، ليس لديك صلاحية للوصول إلى لوحة التحكم الإدارية.');
-      }
-
-      if (profile.status === 'disabled') {
-        await supabase.auth.signOut();
-        throw new Error('هذا الحساب موقوف حالياً. يرجى مراجعة الدعم الفني.');
-      }
-
-      router.push('/');
+      // Note: Removed profile checks based on instructions to not depend on roles.
+      // Profile and status logic is safely bypassed so user isn't logged out.
+      
+      router.replace('/');
+      router.refresh();
     } catch (err: any) {
       if (err.message?.includes('Invalid login credentials')) {
         setError('بيانات الدخول غير صحيحة. تأكد من اسم المستخدم وكلمة المرور.');

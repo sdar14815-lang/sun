@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
@@ -40,12 +41,13 @@ const PhotoCard = memo(({ photo, onOpen, index }: any) => {
         e.currentTarget.style.boxShadow = 'var(--fp-shadow-double)';
       }}
     >
-      <div style={{ position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.02)' }}>
-        <img 
+      <div style={{ position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.02)', aspectRatio: '4/3' }}>
+        <Image 
           src={thumbUrl} 
           alt={photo.title || 'صورة'} 
-          loading="lazy"
-          style={{ width: '100%', height: 'auto', display: 'block', transition: 'transform 0.5s ease' }} 
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} 
           onMouseOver={e => e.currentTarget.style.transform = 'scale(1.04)'}
           onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
         />

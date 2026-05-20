@@ -140,6 +140,11 @@ export default function FamilyReportsPage() {
                   <button 
                     onClick={async (e) => {
                       const btn = e.currentTarget;
+                      const originalText = btn.innerText;
+                      const originalBg = btn.style.backgroundColor;
+                      const originalColor = btn.style.color;
+                      const originalBorder = btn.style.borderColor;
+
                       btn.disabled = true;
                       btn.innerText = 'تم الاطلاع ✓';
                       btn.style.backgroundColor = '#ECFDF5';
@@ -147,9 +152,15 @@ export default function FamilyReportsPage() {
                       btn.style.borderColor = '#A7F3D0';
                       
                       try {
-                        await supabase.from('weekly_reports').update({ family_read_at: new Date().toISOString() }).eq('id', r.id);
+                        const { error } = await supabase.from('weekly_reports').update({ family_read_at: new Date().toISOString() }).eq('id', r.id);
+                        if (error) throw error;
                       } catch (err) {
-                        console.log('Acknowledgment saved locally only');
+                        alert('فشل تأكيد الاستلام، يرجى التحقق من اتصالك بالإنترنت والمحاولة لاحقاً');
+                        btn.disabled = false;
+                        btn.innerText = originalText;
+                        btn.style.backgroundColor = originalBg;
+                        btn.style.color = originalColor;
+                        btn.style.borderColor = originalBorder;
                       }
                     }}
                     style={{
