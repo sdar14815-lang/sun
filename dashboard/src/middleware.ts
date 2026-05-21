@@ -50,7 +50,8 @@ export async function middleware(req: NextRequest) {
     if (isFamilyRoute && !isFamilyLoginRoute) {
       return redirectWithCookies(new URL('/family/login', req.url));
     } else if (!isFamilyRoute && !isAdminLoginRoute) {
-      return redirectWithCookies(new URL('/login', req.url));
+      // Default: redirect to family portal login (admin login is only via direct URL)
+      return redirectWithCookies(new URL('/family/login', req.url));
     }
   } else {
     // --- User IS logged in ---
@@ -61,9 +62,10 @@ export async function middleware(req: NextRequest) {
       if (!isFamilyRoute) {
         return redirectWithCookies(new URL('/family/dashboard', req.url));
       }
-      if (isFamilyLoginRoute) {
-        return redirectWithCookies(new URL('/family/dashboard', req.url));
-      }
+      // Family login page is always accessible — dashboard is reached only via direct URL
+      // if (isFamilyLoginRoute) {
+      //   return redirectWithCookies(new URL('/family/dashboard', req.url));
+      // }
     } else {
       // Admin/Staff user trying to access family routes
       if (isFamilyRoute) {
