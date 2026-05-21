@@ -20,7 +20,28 @@ export default function ReportsPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
-  useEffect(() => { fetchReports(); }, []);
+  // Edit states
+  const [residents, setResidents] = useState<any[]>([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    resident_id: '',
+    report_title: '',
+    report_body: '',
+    progress_score: 50,
+    report_status: 'draft',
+    visible_to_family: false
+  });
+
+  useEffect(() => { 
+    fetchReports(); 
+    supabase.from('residents')
+      .select('id, full_name, file_number')
+      .eq('is_active', true)
+      .order('full_name')
+      .then(({ data }) => setResidents(data || []));
+  }, []);
 
   async function fetchReports() {
     try {
@@ -353,6 +374,60 @@ export default function ReportsPage() {
     setReports(reports.filter(r => r.id !== id));
   }
 
+  async function handleEditClick(reportId: string) {
+    const { data, error } = await supabase
+      .from('weekly_reports')
+      .select('*')
+      .eq('id', reportId)
+      .single();
+    
+    if (error || !data) {
+      alert('حدث خطأ أثناء جلب بيانات التقرير للتعديل');
+      return;
+    }
+    
+    setEditingReportId(reportId);
+    setEditForm({
+      resident_id: data.resident_id || '',
+      report_title: data.report_title || '',
+      report_body: data.report_body || '',
+      progress_score: data.progress_score || 50,
+      report_status: data.report_status || 'draft',
+      visible_to_family: data.visible_to_family || false
+    });
+    
+    setShowEditModal(true);
+  }
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingReportId) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('weekly_reports')
+        .update({
+          resident_id: editForm.resident_id,
+          report_title: editForm.report_title,
+          report_body: editForm.report_body,
+          progress_score: editForm.progress_score,
+          report_status: editForm.report_status,
+          visible_to_family: editForm.visible_to_family
+        })
+        .eq('id', editingReportId);
+
+      if (error) throw error;
+      
+      alert('تم تعديل التقرير بنجاح');
+      setShowEditModal(false);
+      fetchReports();
+    } catch (e: any) {
+      alert('خطأ أثناء حفظ التعديل: ' + e.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   const filtered = filterStatus === 'all' ? reports
     : reports.filter(r => (r.report_status || (r.visible_to_family ? 'published' : 'draft')) === filterStatus);
 
@@ -472,6 +547,23 @@ export default function ReportsPage() {
                           >
                             <FileText size={13} />
                             معاينة / PDF
+                          </button>
+
+                          <button
+                            onClick={() => handleEditClick(r.id)}
+                            style={{
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '8px',
+                              background: '#e6fffa',
+                              border: '1px solid #b2f5ea',
+                              cursor: 'pointer',
+                              color: '#319795',
+                              fontSize: '0.78rem',
+                              fontWeight: '700',
+                              fontFamily: 'Cairo, sans-serif'
+                            }}
+                          >
+                            تعديل
                           </button>
 
                           <button
@@ -626,6 +718,74 @@ export default function ReportsPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Report Modal */}
+        {showEditModal && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, direction: 'rtl', fontFamily: 'Cairo, sans-serif' }}>
+            <div className="card" style={{ width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #edf2f7', paddingBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--primary)' }}>تعديل التقرير الدوري الحالي</h3>
+                <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#718096' }}>✕</button>
+              </div>
+              <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>المقيم *</label>
+                  <select required value={editForm.resident_id} onChange={e => setEditForm({ ...editForm, resident_id: e.target.value })}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
+                    <option value="">اختر المقيم...</option>
+                    {residents.map(r => <option key={r.id} value={r.id}>{r.full_name} — {r.file_number}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>عنوان التقرير *</label>
+                  <input required type="text" value={editForm.report_title} onChange={e => setEditForm({ ...editForm, report_title: e.target.value })}
+                    placeholder="مثال: التقرير الطبي للأسبوع الثالث" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>تفاصيل التقرير والتقدم السلوكي *</label>
+                  <textarea required value={editForm.report_body} onChange={e => setEditForm({ ...editForm, report_body: e.target.value })}
+                    placeholder="اكتب الملاحظات الطبية والسلوكية هنا بالتفصيل..." rows={5}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <label style={{ fontWeight: '600', fontSize: '0.9rem' }}>نسبة التقدم الكلية *</label>
+                    <span style={{ fontWeight: '800', color: 'var(--primary)' }}>{editForm.progress_score}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value={editForm.progress_score} onChange={e => setEditForm({ ...editForm, progress_score: parseInt(e.target.value) })}
+                    style={{ width: '100%', cursor: 'pointer' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>حالة التقرير</label>
+                    <select value={editForm.report_status} onChange={e => setEditForm({ ...editForm, report_status: e.target.value })}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
+                      <option value="draft">مسودة (غير منشور للأهل)</option>
+                      <option value="published">منشور ومكتمل</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: '1.5rem' }}>
+                      <input type="checkbox" checked={editForm.visible_to_family} onChange={e => setEditForm({ ...editForm, visible_to_family: e.target.checked })}
+                        style={{ width: '18px', height: '18px' }} />
+                      <span style={{ fontWeight: '600', fontSize: '0.85rem' }}>مرئي لعائلة المقيم بالبوابة</span>
+                    </label>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid #edf2f7', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+                  <button type="button" onClick={() => setShowEditModal(false)}
+                    style={{ padding: '0.65rem 1.5rem', borderRadius: '8px', background: '#e2e8f0', color: 'var(--primary)', border: 'none', cursor: 'pointer', fontWeight: '600', fontFamily: 'inherit' }}>
+                    إلغاء
+                  </button>
+                  <button type="submit" disabled={savingEdit}
+                    style={{ padding: '0.65rem 2rem', borderRadius: '8px', background: '#319795', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'inherit' }}>
+                    {savingEdit ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

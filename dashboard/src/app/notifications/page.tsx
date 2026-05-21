@@ -12,6 +12,7 @@ export default function NotificationsPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ target: 'all', family_user_id: '', resident_id: '', title: '', body: '', type: 'general' });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -32,30 +33,73 @@ export default function NotificationsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (form.target === 'all') {
-        // Send to all family accounts
-        const inserts = families.map(f => ({ recipient_user_id: f.id, title: form.title, body: form.body, type: form.type }));
-        if (inserts.length === 0) { alert('لا يوجد أهالي مسجلون'); return; }
-        const { error } = await supabase.from('notifications').insert(inserts);
+      if (editingId) {
+        // Edit flow
+        const { error } = await supabase
+          .from('notifications')
+          .update({
+            recipient_user_id: form.family_user_id || null,
+            title: form.title,
+            body: form.body,
+            type: form.type
+          })
+          .eq('id', editingId);
+        
         if (error) throw error;
-      } else if (form.target === 'resident') {
-        // Send to all family linked to resident
-        const { data: links } = await supabase.from('family_links').select('family_user_id').eq('resident_id', form.resident_id).eq('is_active', true);
-        if (!links || links.length === 0) { alert('لا يوجد أهالي مرتبطون بهذا المقيم'); return; }
-        const inserts = links.map(l => ({ recipient_user_id: l.family_user_id, title: form.title, body: form.body, type: form.type }));
-        const { error } = await supabase.from('notifications').insert(inserts);
-        if (error) throw error;
+        alert('تم تعديل الإشعار بنجاح');
       } else {
-        // Send to specific family
-        const { error } = await supabase.from('notifications').insert({ recipient_user_id: form.family_user_id, title: form.title, body: form.body, type: form.type });
-        if (error) throw error;
+        // Send flow
+        if (form.target === 'all') {
+          // Send to all family accounts
+          const inserts = families.map(f => ({ recipient_user_id: f.id, title: form.title, body: form.body, type: form.type }));
+          if (inserts.length === 0) { alert('لا يوجد أهالي مسجلون'); return; }
+          const { error } = await supabase.from('notifications').insert(inserts);
+          if (error) throw error;
+        } else if (form.target === 'resident') {
+          // Send to all family linked to resident
+          const { data: links } = await supabase.from('family_links').select('family_user_id').eq('resident_id', form.resident_id).eq('is_active', true);
+          if (!links || links.length === 0) { alert('لا يوجد أهالي مرتبطون بهذا المقيم'); return; }
+          const inserts = links.map(l => ({ recipient_user_id: l.family_user_id, title: form.title, body: form.body, type: form.type }));
+          const { error } = await supabase.from('notifications').insert(inserts);
+          if (error) throw error;
+        } else {
+          // Send to specific family
+          const { error } = await supabase.from('notifications').insert({ recipient_user_id: form.family_user_id, title: form.title, body: form.body, type: form.type });
+          if (error) throw error;
+        }
+        alert('تم إرسال الإشعار بنجاح');
       }
       setShowModal(false);
       setForm({ target: 'all', family_user_id: '', resident_id: '', title: '', body: '', type: 'general' });
+      setEditingId(null);
       fetchAll();
-      alert('تم إرسال الإشعار بنجاح');
     } catch (e: any) { alert('حدث خطأ: ' + e.message); }
     finally { setSaving(false); }
+  }
+
+  function handleEditClick(n: any) {
+    setEditingId(n.id);
+    setForm({
+      target: 'family',
+      family_user_id: n.recipient_user_id || '',
+      resident_id: '',
+      title: n.title || '',
+      body: n.body || '',
+      type: n.type || 'general'
+    });
+    setShowModal(true);
+  }
+
+  async function handleDeleteNotification(id: string) {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الإشعار نهائياً؟')) return;
+    try {
+      const { error } = await supabase.from('notifications').delete().eq('id', id);
+      if (error) throw error;
+      setNotifications(notifications.filter(n => n.id !== id));
+      alert('تم حذف الإشعار بنجاح');
+    } catch (e: any) {
+      alert('خطأ أثناء الحذف: ' + e.message);
+    }
   }
 
   return (
@@ -67,7 +111,7 @@ export default function NotificationsPage() {
             <h1 style={{ fontSize: '1.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>إدارة الإشعارات</h1>
             <p style={{ color: 'var(--text-muted)' }}>إرسال إشعارات للأهالي تظهر في البوابة والتطبيق</p>
           </div>
-          <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={() => { setEditingId(null); setForm({ target: 'all', family_user_id: '', resident_id: '', title: '', body: '', type: 'general' }); setShowModal(true); }} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={20} /> إرسال إشعار
           </button>
         </header>
@@ -83,6 +127,7 @@ export default function NotificationsPage() {
                   <th style={{ padding: '1rem' }}>النوع</th>
                   <th style={{ padding: '1rem' }}>التاريخ</th>
                   <th style={{ padding: '1rem' }}>مقروءة</th>
+                  <th style={{ padding: '1rem', width: '150px' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -98,9 +143,45 @@ export default function NotificationsPage() {
                         {n.is_read ? 'نعم' : 'لا'}
                       </span>
                     </td>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button 
+                          onClick={() => handleEditClick(n)}
+                          style={{
+                            background: '#ebf8ff',
+                            color: '#2b6cb0',
+                            border: '1px solid #bee3f8',
+                            borderRadius: '6px',
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            fontFamily: 'Cairo, sans-serif'
+                          }}
+                        >
+                          تعديل
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteNotification(n.id)}
+                          style={{
+                            background: '#fff5f5',
+                            color: '#c53030',
+                            border: '1px solid #fed7d7',
+                            borderRadius: '6px',
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            fontFamily: 'Cairo, sans-serif'
+                          }}
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
-                {notifications.length === 0 && <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>لا توجد إشعارات</td></tr>}
+                {notifications.length === 0 && <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>لا توجد إشعارات</td></tr>}
               </tbody>
             </table>
           )}
@@ -110,19 +191,23 @@ export default function NotificationsPage() {
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div className="card" style={{ width: '100%', maxWidth: '520px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--primary)' }}>إرسال إشعار جديد</h2>
-                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--primary)' }}>
+                  {editingId ? 'تعديل الإشعار الحالي' : 'إرسال إشعار جديد'}
+                </h2>
+                <button onClick={() => { setShowModal(false); setEditingId(null); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
               </div>
               <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>الإرسال إلى</label>
-                  <select value={form.target} onChange={e => setForm({ ...form, target: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
-                    <option value="all">كل الأهالي (إعلان عام)</option>
-                    <option value="resident">أهالي مقيم محدد</option>
-                    <option value="family">أسرة محددة</option>
-                  </select>
-                </div>
+                {!editingId && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>الإرسال إلى</label>
+                    <select value={form.target} onChange={e => setForm({ ...form, target: e.target.value })}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}>
+                      <option value="all">كل الأهالي (إعلان عام)</option>
+                      <option value="resident">أهالي مقيم محدد</option>
+                      <option value="family">أسرة محددة</option>
+                    </select>
+                  </div>
+                )}
                 {form.target === 'resident' && (
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>اختر المقيم</label>
@@ -133,7 +218,7 @@ export default function NotificationsPage() {
                     </select>
                   </div>
                 )}
-                {form.target === 'family' && (
+                {(form.target === 'family' || editingId) && (
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>اختر الأسرة</label>
                     <select required value={form.family_user_id} onChange={e => setForm({ ...form, family_user_id: e.target.value })}
@@ -154,9 +239,9 @@ export default function NotificationsPage() {
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setShowModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', background: '#e2e8f0', color: 'var(--primary)', border: 'none', cursor: 'pointer' }}>إلغاء</button>
+                  <button type="button" onClick={() => { setShowModal(false); setEditingId(null); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', background: '#e2e8f0', color: 'var(--primary)', border: 'none', cursor: 'pointer' }}>إلغاء</button>
                   <button type="submit" className="btn btn-primary" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Send size={16} /> {saving ? 'جاري الإرسال...' : 'إرسال الإشعار'}
+                    <Send size={16} /> {saving ? 'جاري الحفظ...' : (editingId ? 'حفظ التعديلات' : 'إرسال الإشعار')}
                   </button>
                 </div>
               </form>

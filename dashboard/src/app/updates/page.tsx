@@ -33,6 +33,7 @@ export default function UpdatesPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ resident_id: '', update_type: 'general', title: '', content: '', visible_to_family: true });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // WhatsApp Sharing State
   const [sharingUpdate, setSharingUpdate] = useState<any>(null);
@@ -132,29 +133,74 @@ export default function UpdatesPage() {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from('resident_updates').insert({ ...form, created_by: user?.id });
-      if (error) throw error;
+      
+      if (editingId) {
+        // Edit flow
+        const { error } = await supabase
+          .from('resident_updates')
+          .update({
+            resident_id: form.resident_id,
+            update_type: form.update_type,
+            title: form.title,
+            content: form.content,
+            visible_to_family: form.visible_to_family
+          })
+          .eq('id', editingId);
+          
+        if (error) throw error;
+        alert('تم تعديل التحديث بنجاح');
+      } else {
+        // Add flow
+        const { error } = await supabase.from('resident_updates').insert({ ...form, created_by: user?.id });
+        if (error) throw error;
 
-      // Send Push Notification if visible to family
-      if (form.visible_to_family) {
-        fetch('/api/notifications/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `تحديث حالة جديد: ${form.title || 'تقرير حالة مقيم'}`,
-            body: form.content.length > 80 ? `${form.content.substring(0, 80)}...` : form.content,
-            url: `${window.location.origin}/family/dashboard`
-          }),
-        }).catch(err => console.error("Failed to send notification:", err));
+        // Send Push Notification if visible to family
+        if (form.visible_to_family) {
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: `تحديث حالة جديد: ${form.title || 'تقرير حالة مقيم'}`,
+              body: form.content.length > 80 ? `${form.content.substring(0, 80)}...` : form.content,
+              url: `${window.location.origin}/family/dashboard`
+            }),
+          }).catch(err => console.error("Failed to send notification:", err));
+        }
+        alert('تم إضافة التحديث بنجاح');
       }
 
       setShowModal(false);
       setForm({ resident_id: '', update_type: 'general', title: '', content: '', visible_to_family: true });
+      setEditingId(null);
       fetchUpdates();
     } catch (e: any) { alert('حدث خطأ: ' + e.message); }
     finally { setSaving(false); }
+  }
+
+  function handleEditClick(u: any) {
+    setEditingId(u.id);
+    setForm({
+      resident_id: u.resident_id || '',
+      update_type: u.update_type || 'general',
+      title: u.title || '',
+      content: u.content || '',
+      visible_to_family: u.visible_to_family !== false
+    });
+    setShowModal(true);
+  }
+
+  async function handleDeleteUpdate(id: string) {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا التحديث نهائياً؟')) return;
+    try {
+      const { error } = await supabase.from('resident_updates').delete().eq('id', id);
+      if (error) throw error;
+      setUpdates(updates.filter(u => u.id !== id));
+      alert('تم حذف التحديث بنجاح');
+    } catch (e: any) {
+      alert('خطأ أثناء الحذف: ' + e.message);
+    }
   }
 
   const filtered = updates.filter(u => {
@@ -173,7 +219,7 @@ export default function UpdatesPage() {
             <h1 style={{ fontSize: '1.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>التحديثات اليومية</h1>
             <p style={{ color: 'var(--text-muted)' }}>تحكم في ما يظهر للأهالي عبر البوابة والتطبيق</p>
           </div>
-          <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={() => { setEditingId(null); setForm({ resident_id: '', update_type: 'general', title: '', content: '', visible_to_family: true }); setShowModal(true); }} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={20} /> إضافة تحديث
           </button>
         </header>
@@ -220,29 +266,73 @@ export default function UpdatesPage() {
                       </span>
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <button 
-                        onClick={() => handleShareWhatsApp(u)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          background: '#25D366',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '0.45rem 0.75rem',
-                          fontWeight: '700',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 10px rgba(37, 211, 102, 0.15)',
-                          transition: 'all 0.15s ease',
-                          fontFamily: 'Cairo, sans-serif'
-                        }}
-                        onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                        onMouseOut={e => e.currentTarget.style.transform = 'none'}
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.455L0 24zm6.59-4.846c1.66.986 3.284 1.488 4.957 1.49 5.373 0 9.749-4.373 9.753-9.743.002-2.602-1.01-5.05-2.854-6.894-1.844-1.843-4.29-2.853-6.894-2.855-5.377 0-9.754 4.375-9.759 9.748-.002 1.761.47 3.427 1.365 4.908L1.925 22l4.722-1.246zm12.355-6.587c-.272-.136-1.61-.794-1.86-.885-.25-.09-.432-.136-.613.136-.18.273-.7 0-.88-.7-.18-.273-.362-.636-.61-.59-.25-.045-1.248-.46-2.378-1.467-.88-.785-1.474-1.755-1.647-2.05-.172-.293-.018-.452.12-.59.123-.123.272-.317.408-.475.136-.158.18-.27.272-.452.09-.18.045-.34-.022-.475-.067-.136-.613-1.477-.84-2.02-.22-.533-.48-.46-.613-.467-.12-.006-.27-.008-.423-.008-.152 0-.402.057-.613.284-.21.227-.803.784-.803 1.91 0 1.127.82 2.215.933 2.37.113.153 1.615 2.467 3.91 3.46.545.236.97.377 1.302.482.548.174 1.047.15 1.44.09.438-.066 1.61-.657 1.838-1.294.227-.636.227-1.18.158-1.293-.068-.113-.25-.204-.522-.34z"/>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => handleShareWhatsApp(u)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            background: '#25D366',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '0.45rem 0.75rem',
+                            fontWeight: '700',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(37, 211, 102, 0.15)',
+                            transition: 'all 0.15s ease',
+                            fontFamily: 'Cairo, sans-serif'
+                          }}
+                          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                          onMouseOut={e => e.currentTarget.style.transform = 'none'}
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style={{ marginLeft: '0.25rem' }}>
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.455L0 24zm6.59-4.846c1.66.986 3.284 1.488 4.957 1.49 5.373 0 9.749-4.373 9.753-9.743.002-2.602-1.01-5.05-2.854-6.894-1.844-1.843-4.29-2.853-6.894-2.855-5.377 0-9.754 4.375-9.759 9.748-.002 1.761.47 3.427 1.365 4.908L1.925 22l4.722-1.246zm12.355-6.587c-.272-.136-1.61-.794-1.86-.885-.25-.09-.432-.136-.613.136-.18.273-.7 0-.88-.7-.18-.273-.362-.636-.61-.59-.25-.045-1.248-.46-2.378-1.467-.88-.785-1.474-1.755-1.647-2.05-.172-.293-.018-.452.12-.59.123-.123.272-.317.408-.475.136-.158.18-.27.272-.452.09-.18.045-.34-.022-.475-.067-.136-.613-1.477-.84-2.02-.22-.533-.48-.46-.613-.467-.12-.006-.27-.008-.423-.008-.152 0-.402.057-.613.284-.21.227-.803.784-.803 1.91 0 1.127.82 2.215.933 2.37.113.153 1.615 2.467 3.91 3.46.545.236.97.377 1.302.482.548.174 1.047.15 1.44.09.438-.066 1.61-.657 1.838-1.294.227-.636.227-1.18.158-1.293-.068-.113-.25-.204-.522-.34z"/>
+                          </svg>
+                          مشاركة
+                        </button>
+                        <button 
+                          onClick={() => handleEditClick(u)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            background: '#ebf8ff',
+                            color: '#2b6cb0',
+                            border: '1px solid #bee3f8',
+                            borderRadius: '8px',
+                            padding: '0.45rem 0.75rem',
+                            fontWeight: '700',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            fontFamily: 'Cairo, sans-serif'
+                          }}
+                        >
+                          تعديل
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUpdate(u.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            background: '#fff5f5',
+                            color: '#c53030',
+                            border: '1px solid #fed7d7',
+                            borderRadius: '8px',
+                            padding: '0.45rem 0.75rem',
+                            fontWeight: '700',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            fontFamily: 'Cairo, sans-serif'
+                          }}
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </td>75-9.759 9.748-.002 1.761.47 3.427 1.365 4.908L1.925 22l4.722-1.246zm12.355-6.587c-.272-.136-1.61-.794-1.86-.885-.25-.09-.432-.136-.613.136-.18.273-.7 0-.88-.7-.18-.273-.362-.636-.61-.59-.25-.045-1.248-.46-2.378-1.467-.88-.785-1.474-1.755-1.647-2.05-.172-.293-.018-.452.12-.59.123-.123.272-.317.408-.475.136-.158.18-.27.272-.452.09-.18.045-.34-.022-.475-.067-.136-.613-1.477-.84-2.02-.22-.533-.48-.46-.613-.467-.12-.006-.27-.008-.423-.008-.152 0-.402.057-.613.284-.21.227-.803.784-.803 1.91 0 1.127.82 2.215.933 2.37.113.153 1.615 2.467 3.91 3.46.545.236.97.377 1.302.482.548.174 1.047.15 1.44.09.438-.066 1.61-.657 1.838-1.294.227-.636.227-1.18.158-1.293-.068-.113-.25-.204-.522-.34z"/>
                         </svg>
                         مشاركة
                       </button>
@@ -311,7 +401,9 @@ export default function UpdatesPage() {
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div className="card" style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--primary)' }}>إضافة تحديث جديد</h2>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--primary)' }}>
+                  {editingId ? 'تعديل التحديث الحالي' : 'إضافة تحديث جديد'}
+                </h2>
                 <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
               </div>
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { Tv, Clock, User, AlertCircle, RefreshCw, Shield } from 'lucide-react';
+import { Tv, Clock, User, AlertCircle, RefreshCw, Shield, Users, Volume2, VolumeX } from 'lucide-react';
 
 export default function FamilyLivePage() {
   const router = useRouter();
@@ -12,10 +12,109 @@ export default function FamilyLivePage() {
   const [loading, setLoading] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const prevLiveRef = useRef(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     loadData();
+    
+    // Auto-polling every 30 seconds for stream status
+    pollingRef.current = setInterval(() => {
+      refreshStreamStatus();
+    }, 30000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      // Cleanup: leave presence channel when unmounting
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
   }, []);
+
+  // ═══════════════════════════════════════════════════════
+  // REAL-TIME PRESENCE: Join viewer channel after profile loads
+  // Each user on this page = 1 real viewer. Leave page = removed.
+  // ═══════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!profile) return;
+
+    const channel = supabase.channel('live-viewers', {
+      config: { presence: { key: profile.id } },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const count = Object.keys(state).length;
+        setViewerCount(count);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: profile.id,
+            name: profile.full_name || 'زائر',
+            joined_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile]);
+
+  // Play notification sound when stream starts
+  useEffect(() => {
+    if (liveStream?.is_live && !prevLiveRef.current && soundEnabled) {
+      playNotificationSound();
+    }
+    prevLiveRef.current = liveStream?.is_live || false;
+  }, [liveStream?.is_live, soundEnabled]);
+
+  function playNotificationSound() {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+      oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.15); // G5
+      oscillator.frequency.setValueAtTime(987.77, audioCtx.currentTime + 0.3); // B5
+      
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+      
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.6);
+    } catch (e) {
+      console.log('Sound notification not supported');
+    }
+  }
+
+  // Quick refresh for polling — only updates stream data (viewer count is real-time via Presence)
+  async function refreshStreamStatus() {
+    try {
+      const { data: streamData } = await supabase
+        .from('live_streams')
+        .select('*')
+        .limit(1);
+
+      if (streamData && streamData.length > 0) {
+        setLiveStream(streamData[0]);
+      }
+    } catch (err) {
+      console.error('Polling error:', err);
+    }
+  }
 
   async function loadData(isManualRefresh = false) {
     if (isManualRefresh) setRefreshing(true);
@@ -26,7 +125,6 @@ export default function FamilyLivePage() {
         return;
       }
 
-      // Check family profile status and authorization
       const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select('*')
@@ -45,15 +143,10 @@ export default function FamilyLivePage() {
 
       setProfile(prof);
 
-      // Fetch active live stream configuration
-      const { data: streamData, error: streamError } = await supabase
+      const { data: streamData } = await supabase
         .from('live_streams')
         .select('*')
         .limit(1);
-
-      if (streamError) {
-        console.error("Live Stream Fetch Error:", streamError.message);
-      }
 
       if (streamData && streamData.length > 0) {
         setLiveStream(streamData[0]);
@@ -110,9 +203,9 @@ export default function FamilyLivePage() {
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: 'clamp(1rem, 4vw, 2rem)' }}>
 
         {/* Header Block */}
-        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)' }}>
+        <div className="fp-glass-card fp-animate fp-animate-delay-1" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderRight: '5px solid var(--fp-primary)', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.3rem)', fontWeight: '900', color: 'var(--fp-primary)', margin: 0 }}>
                 بث الاطمئنان اليومي
               </h1>
@@ -129,36 +222,79 @@ export default function FamilyLivePage() {
                   مباشر الآن 🔴
                 </span>
               )}
+              {viewerCount > 0 && (
+                <span style={{
+                  fontSize: '0.65rem',
+                  backgroundColor: 'rgba(13, 40, 71, 0.08)',
+                  color: 'var(--fp-primary)',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '8px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  border: '1px solid rgba(13, 40, 71, 0.1)'
+                }}>
+                  <Users size={12} />
+                  {viewerCount} مشاهد الآن
+                </span>
+              )}
             </div>
             <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.2rem', margin: '0.2rem 0 0 0' }}>
               بث مباشر يومي مخصص لأهالي المقيمين للاطمئنان على أبنائهم ومتابعة أنشطتهم اليومية بالمركز
             </p>
+            <p style={{ color: 'var(--fp-text-muted)', fontSize: '0.68rem', fontWeight: '600', margin: '0.3rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block', animation: 'fp-pulse 2s infinite' }} />
+              تحديث تلقائي كل 30 ثانية
+            </p>
           </div>
 
-          <button
-            onClick={() => loadData(true)}
-            disabled={refreshing}
-            style={{
-              background: 'rgba(13,40,71,0.06)',
-              border: '1px solid rgba(13,40,71,0.1)',
-              borderRadius: '12px',
-              padding: '0.5rem 0.75rem',
-              color: 'var(--fp-primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              fontFamily: 'Cairo, sans-serif',
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={e => e.currentTarget.style.background = 'rgba(13,40,71,0.1)'}
-            onMouseOut={e => e.currentTarget.style.background = 'rgba(13,40,71,0.06)'}
-          >
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {/* Sound Toggle */}
+            <button
+              onClick={() => setSoundEnabled(v => !v)}
+              title={soundEnabled ? 'كتم صوت التنبيه' : 'تفعيل صوت التنبيه'}
+              style={{
+                background: soundEnabled ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                border: `1px solid ${soundEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                borderRadius: '10px',
+                padding: '0.45rem',
+                color: soundEnabled ? '#10B981' : '#EF4444',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'all 0.2s'
+              }}
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+
+            {/* Refresh Button */}
+            <button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              style={{
+                background: 'rgba(13,40,71,0.06)',
+                border: '1px solid rgba(13,40,71,0.1)',
+                borderRadius: '12px',
+                padding: '0.5rem 0.75rem',
+                color: 'var(--fp-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontSize: '0.78rem',
+                fontWeight: '700',
+                fontFamily: 'Cairo, sans-serif',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = 'rgba(13,40,71,0.1)'}
+              onMouseOut={e => e.currentTarget.style.background = 'rgba(13,40,71,0.06)'}
+            >
             <RefreshCw size={13} className={refreshing ? 'spin-anim' : ''} />
             تحديث الحالة
-          </button>
+            </button>
+          </div>
         </div>
 
         {/* Video Player Box */}

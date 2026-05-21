@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar, { HamburgerButton } from '@/components/Sidebar';
 import { supabase } from '@/lib/supabase';
-import { Tv, Play, Square, Save, AlertCircle, CheckCircle2, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Tv, Play, Square, Save, AlertCircle, CheckCircle2, ShieldAlert, ExternalLink, Users, Clock, TrendingUp, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLivePage() {
@@ -23,9 +23,78 @@ export default function AdminLivePage() {
   const [updating, setUpdating] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [viewers, setViewers] = useState<{ id: string; name: string; joinedAt: string }[]>([]);
+  const [peakViewers, setPeakViewers] = useState(0);
+  const [sessionStart, setSessionStart] = useState<string | null>(null);
+  const [durationText, setDurationText] = useState('00:00:00');
+
+  useEffect(() => {
+    if (!isLive || !sessionStart) {
+      setDurationText('00:00:00');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const start = new Date(sessionStart).getTime();
+      const now = new Date().getTime();
+      const diff = Math.max(0, now - start);
+
+      const hrs = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+
+      const formatted = [
+        hrs.toString().padStart(2, '0'),
+        mins.toString().padStart(2, '0'),
+        secs.toString().padStart(2, '0')
+      ].join(':');
+
+      setDurationText(formatted);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLive, sessionStart]);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     checkAuthAndLoad();
+
+    // Subscribe to real-time viewer presence channel
+    const channel = supabase.channel('live-viewers', {
+      config: { presence: { key: 'admin-monitor' } },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const activeViewers: { id: string; name: string; joinedAt: string }[] = [];
+        
+        Object.keys(state).forEach((key) => {
+          if (key !== 'admin-monitor') {
+            const presenceList = state[key] as any[];
+            if (presenceList && presenceList.length > 0) {
+              const details = presenceList[0];
+              activeViewers.push({
+                id: key,
+                name: details.name || 'عائلة المقيم',
+                joinedAt: details.joined_at || new Date().toISOString()
+              });
+            }
+          }
+        });
+        
+        setViewers(activeViewers);
+        setViewerCount(activeViewers.length);
+        setPeakViewers(prev => Math.max(prev, activeViewers.length));
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
   }, []);
 
   async function checkAuthAndLoad() {
@@ -67,6 +136,9 @@ export default function AdminLivePage() {
         setYoutubeUrl(stream.youtube_url || '');
         setInstructorName(stream.instructor_name || '');
         setIsLive(stream.is_live || false);
+        if (stream.is_live && stream.updated_at) {
+          setSessionStart(stream.updated_at);
+        }
       }
     } catch (e: any) {
       console.error(e);
@@ -124,8 +196,77 @@ export default function AdminLivePage() {
       }
 
       if (shouldToggleLive) {
-        setIsLive(targetLiveState ?? false);
+        const nextLiveState = targetLiveState ?? false;
+        setIsLive(nextLiveState);
+        if (nextLiveState) {
+          setSessionStart(updatePayload.updated_at);
+          setPeakViewers(0);
+        } else {
+          setSessionStart(null);
+        }
       }
+
+      // ═══════════════════════════════════════════════════════
+      // AUTO-NOTIFY: Send notifications to all families on stream start/stop
+      // ═══════════════════════════════════════════════════════
+      if (shouldToggleLive) {
+        try {
+          // Fetch all active family users
+          const { data: activeFamilies } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('role', 'family')
+            .eq('status', 'active');
+
+          if (activeFamilies && activeFamilies.length > 0) {
+            const isGoingLive = targetLiveState === true;
+            const notifTitle = isGoingLive
+              ? '🔴 بث مباشر الآن — بث الاطمئنان اليومي'
+              : '⏹️ انتهى بث الاطمئنان اليومي';
+            const notifBody = isGoingLive
+              ? `يبث الآن "${title || 'بث الاطمئنان اليومي'}" بإشراف ${instructorName || 'طاقم المركز'}. اضغطوا لمشاهدة أبنائكم مباشرة.`
+              : `انتهى بث "${title || 'بث الاطمئنان اليومي'}". شكراً لمتابعتكم واهتمامكم. ترقبوا البث القادم.`;
+
+            // Insert in-portal notifications for all family users
+            const inserts = activeFamilies.map(f => ({
+              recipient_user_id: f.id,
+              title: notifTitle,
+              body: notifBody,
+              type: 'live',
+            }));
+
+            const { error: notifError } = await supabase
+              .from('notifications')
+              .insert(inserts);
+
+            if (notifError) {
+              console.error('Error sending live notifications:', notifError);
+            } else {
+              console.log(`✅ Sent ${inserts.length} live notifications to families`);
+            }
+
+            // Send Push Notification via OneSignal API
+            if (isGoingLive) {
+              try {
+                await fetch('/api/notifications/send', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: notifTitle,
+                    body: notifBody,
+                    url: '/family/live',
+                  }),
+                });
+              } catch (pushErr) {
+                console.error('Push notification error (non-blocking):', pushErr);
+              }
+            }
+          }
+        } catch (notifyErr) {
+          console.error('Notification error (non-blocking):', notifyErr);
+        }
+      }
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e: any) {
@@ -201,6 +342,23 @@ export default function AdminLivePage() {
               }} />
               {isLive ? 'حالة البث: مباشر الآن 🔴' : 'حالة البث: متوقف حالياً'}
             </span>
+            {isLive && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '20px',
+                backgroundColor: '#ebf8ff',
+                color: '#2b6cb0',
+                border: '1px solid #bee3f8'
+              }}>
+                <Users size={14} />
+                {viewerCount} مشاهد حقيقي الآن
+              </span>
+            )}
           </div>
         </header>
 
@@ -418,6 +576,84 @@ export default function AdminLivePage() {
 
           </div>
 
+        </div>
+
+        {/* Real-time viewer statistics and report panel */}
+        <div className="card" style={{ marginTop: '1.5rem', padding: '1.75rem' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary)', marginBottom: '1.25rem', borderBottom: '1px solid #edf2f7', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <TrendingUp size={20} style={{ color: '#3182ce' }} /> إحصائيات وقائمة حضور البث المباشر (في الوقت الحقيقي)
+          </h2>
+
+          {/* Quick Stats Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            
+            {/* Active Viewers */}
+            <div style={{ background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ebf8ff', color: '#3182ce', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={20} />
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '700', color: '#718096' }}>المشاهدون الحاليون</p>
+                <p style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: '800', color: '#2b6cb0' }}>{viewerCount} مشاهد نشط</p>
+              </div>
+            </div>
+
+            {/* Peak Viewers */}
+            <div style={{ background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f0fff4', color: '#38a169', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={20} />
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '700', color: '#718096' }}>ذروة المشاهدة (Peak)</p>
+                <p style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: '800', color: '#276749' }}>{peakViewers} عائلات</p>
+              </div>
+            </div>
+
+            {/* Stream Duration */}
+            <div style={{ background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fffaf0', color: '#dd6b20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Clock size={20} />
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '700', color: '#718096' }}>مدة البث المتواصلة</p>
+                <p style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: '800', color: '#dd6b20', fontFamily: 'monospace' }}>{durationText}</p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Active Family Viewers List */}
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#4a5568', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <UserCheck size={18} style={{ color: '#38a169' }} /> قائمة حضور الأهالي المتصلين بالبث الآن
+            </h3>
+
+            {!isLive ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0' }}>
+                <Tv size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+                <p style={{ fontSize: '0.85rem', fontWeight: '700', margin: 0 }}>البث متوقف حالياً. قم بتشغيل البث لبدء رصد حضور المشاهدين في الوقت الحقيقي.</p>
+              </div>
+            ) : viewers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#718096' }}>
+                <div className="pulse-dot" style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#e53e3e', margin: '0 auto 0.75rem', animation: 'pulse-live 1.5s infinite' }} />
+                <p style={{ fontSize: '0.88rem', fontWeight: '700', margin: 0 }}>البث نشط. بانتظار دخول أول عائلة لمتابعة البث المباشر حالياً...</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem' }}>
+                {viewers.map((viewer) => (
+                  <div key={viewer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#f7fafc', border: '1px solid #edf2f7', borderRadius: '10px', padding: '0.75rem 1rem', transition: 'all 0.2s' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#38a169', animation: 'pulse-live 1.8s infinite' }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: '800', color: '#2d3748' }}>{viewer.name}</p>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#a0aec0', fontWeight: '600' }}>
+                        انضم منذ: {new Date(viewer.joinedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 

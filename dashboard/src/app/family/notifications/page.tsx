@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import FamilyNavbar from '@/components/FamilyNavbar';
-import { Bell, CheckCircle2, AlertTriangle, ShieldCheck, FileText } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle, ShieldCheck, FileText, Tv } from 'lucide-react';
 
 export default function FamilyNotificationsPage() {
   const router = useRouter();
@@ -32,6 +32,7 @@ export default function FamilyNotificationsPage() {
     report: { color: 'var(--fp-success)', bg: 'rgba(16, 185, 129, 0.05)', icon: FileText },
     update: { color: 'var(--fp-accent)', bg: 'rgba(240, 165, 0, 0.05)', icon: ShieldCheck },
     alert: { color: 'var(--fp-danger)', bg: 'rgba(239, 68, 68, 0.05)', icon: AlertTriangle },
+    live: { color: '#DC2626', bg: 'rgba(220, 38, 38, 0.06)', icon: Tv },
   };
 
   if (loading) {

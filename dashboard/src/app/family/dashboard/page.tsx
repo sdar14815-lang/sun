@@ -189,6 +189,23 @@ export default function FamilyDashboardPage() {
   useEffect(() => {
     loadAll();
     checkNotificationSubscription();
+    
+    // Auto-poll live stream status every 30 seconds
+    const livePoller = setInterval(async () => {
+      try {
+        const { data: liveData } = await supabase
+          .from('live_streams')
+          .select('*')
+          .limit(1);
+        if (liveData && liveData.length > 0) {
+          setLiveStream(liveData[0]);
+        }
+      } catch (err) {
+        console.error('Live poll error:', err);
+      }
+    }, 30000);
+
+    return () => clearInterval(livePoller);
   }, []);
 
   const checkNotificationSubscription = () => {
