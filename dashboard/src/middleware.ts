@@ -31,7 +31,7 @@ export async function middleware(req: NextRequest) {
 
   const isFamilyRoute = pathname.startsWith('/family');
   const isFamilyLoginRoute = pathname === '/family/login';
-  const isAdminLoginRoute = pathname === '/login';
+  const isAdminLoginRoute = pathname === '/gate-islam';
 
   // Helper to preserve cookies on redirect
   const redirectWithCookies = (url: URL) => {
@@ -72,6 +72,10 @@ export async function middleware(req: NextRequest) {
         return redirectWithCookies(new URL('/', req.url));
       }
       if (isAdminLoginRoute) {
+        return redirectWithCookies(new URL('/', req.url));
+      }
+      // Old /login path — redirect to family portal
+      if (pathname === '/login') {
         return redirectWithCookies(new URL('/', req.url));
       }
     }

@@ -54,7 +54,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const handleLogout = async () => {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
       await supabase.auth.signOut();
-      window.location.href = '/login';
+      window.location.href = '/gate-islam';
     }
   };
 

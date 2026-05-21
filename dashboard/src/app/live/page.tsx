@@ -32,7 +32,7 @@ export default function AdminLivePage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push('/login');
+        router.push('/gate-islam');
         return;
       }
 
